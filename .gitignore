@@ -161,3 +161,6 @@ cython_debug/
 
 
 **/MP1_latex
+
+# VS Code
+.vscode/
