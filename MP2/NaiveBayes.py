@@ -116,7 +116,6 @@ class NaiveBayes:
 
         return self
 
-    # TODO
     def predict(self, X):
         """To predict the output of samples.
 
@@ -138,11 +137,13 @@ class NaiveBayes:
         if self._thetas is None:
             raise ValueError(f"Model is not trained.")
 
-        log_class_prior = np.log(self._thetas[:, 0])  # log( P(y=k) )
-        feat_log_proba = np.log(self._thetas[:, 1::])  # log( P(x_j=1 | y=k) )
+        log_class_prior = np.log(self._thetas[:, 0])  # log( P(y=k) )  shape: 1xk
+        feat_log_proba = np.log(
+            self._thetas[:, 1::]
+        )  # log( P(x_j=1 | y=k) )  shape: kxm
         feat_log_neg_proba = np.log(
             1 - self._thetas[:, 1::]
-        )  # log( 1 - P(x_j=1 | y=k) )
+        )  # log( 1 - P(x_j=1 | y=k) )  shape: kxm
 
         n_samples = X.shape[0]
         predictions = []
@@ -154,20 +155,33 @@ class NaiveBayes:
         # jll = safe_sparse_dot(X, (feat_log_proba - feat_log_neg_proba).T)
         # jll += log_class_prior + feat_log_neg_proba.sum(axis=1)
 
-        for sample_num in range(n_samples):
-            X_pred = X[sample_num, :]
+        # Compute discriminants of classes for all samples
+        # Σ [ x_j * (log P(x|y) - log( 1 - P(x|y) ) + log( 1-P(x|y) )]
+        self._joint_log_likelihood = X @ (
+            feat_log_proba - feat_log_neg_proba
+        ).T + feat_log_neg_proba.sum(axis=1)
 
-            feat_proba = np.sum(
-                feat_log_proba * X_pred + feat_log_neg_proba * (1 - X_pred), axis=1
-            )
+        # Add class log priors
+        self._joint_log_likelihood += log_class_prior
 
-            discriminants = log_class_prior + feat_proba
+        # Predictions
+        predictions_idx = np.argmax(self._joint_log_likelihood, axis=1)
+        predictions = self._classes[predictions_idx]
 
-            self._joint_log_likelihood[sample_num, :] = discriminants
+        # for sample_num in range(n_samples):
+        #     X_pred = X[sample_num, :]
 
-            y_pred = self._classes[np.argmax(discriminants, axis=None)]
+        #     feat_proba = np.sum(
+        #         feat_log_proba * X_pred + feat_log_neg_proba * (1 - X_pred), axis=1
+        #     )
 
-            predictions.append(y_pred)
+        #     discriminants = log_class_prior + feat_proba
+
+        #     self._joint_log_likelihood[sample_num, :] = discriminants
+
+        #     y_pred = self._classes[np.argmax(discriminants, axis=None)]
+
+        #     predictions.append(y_pred)
 
         return predictions
 
