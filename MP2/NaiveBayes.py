@@ -185,7 +185,7 @@ class NaiveBayes:
 
         return predictions
 
-    def accu_eval(self, X, y):
+    def score(self, X, y):
         """To compute the accuracy of the model
 
         Args:
