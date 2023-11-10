@@ -1,5 +1,5 @@
 """
-File to find the best model
+To find the best model and their parameter combination using K-Fold validation
 """
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer
@@ -14,6 +14,12 @@ import time
 from NaiveBayes import NaiveBayes
 from cross_val_score import cross_val_score
 
+#TODO
+# - Define list of dataset for CV
+# - Analyze results df
+# - Use text datasets
+# - Define more models
+
 # Define training datasets
 # Binary Features toy dataset
 rng = np.random.RandomState(1)
@@ -27,6 +33,7 @@ class Dataset:
     def __init__(self, X_train, y_train):
         self.X = X_train
         self.y = y_train
+        self.name = 'dataset1'
 
 
 ##
@@ -35,28 +42,30 @@ train_data_1 = Dataset(X_train, y_train)
 
 ##
 model_list = {}
-# model_list["My NB"] = {
-#     "model": NaiveBayes(laplace_smoothing=True, k_cv=0, verbose=False),
-#     "train_data": train_data_1,
-#     'params': {}
-# }
+model_list["My NB"] = {
+    "model": NaiveBayes,
+    "train_data": train_data_1,
+    'base_params': {'laplace_smoothing': True, 'k_cv': 0, 'verbose': False},
+    'cv_params': None
+}
 
-# model_list["SK Bernoulli NB"] = {
-#     "model": BernoulliNB(),
-#     "train_data": train_data_1,
-#     'params': {}
-# }
+model_list["SK Bernoulli NB"] = {
+    "model": BernoulliNB,
+    "train_data": train_data_1,
+    'base_params': {},
+    'cv_params': None
+}
 
 model_list["SVM"] = {
     "model": svm.LinearSVC,
     "train_data": train_data_1,
-    "base_params": {"dual": "auto", "random_state": 0},
+    "base_params": {"random_state": 0},
     "cv_params": {"C": [0.1, 1, 10], "penalty": ["l1", "l2"], "tol": {1e-4, 1e-5}},
 }
 
 # Cross-Validation
 n_fold = 5
-results = []
+results_df = pd.DataFrame()
 
 start_time = time.time()
 print(f"--------- Training all models ---------")
@@ -65,6 +74,7 @@ for model_name, model_info in model_list.items():
     model_train_data = model_info["train_data"]
     base_params = model_info["base_params"]
     cv_params = model_info["cv_params"]
+    dataset_name = model_train_data.name
 
     X_train = model_train_data.X
     y_train = model_train_data.y
@@ -72,22 +82,17 @@ for model_name, model_info in model_list.items():
     print(f"\nModel : {model_name}")
 
     # Cross_validation
-    cv_score = cross_val_score(
+    cv_results = cross_val_score(
         model, X_train, y_train, cv=n_fold, base_params=base_params, cv_params=cv_params
     )
 
-    print(f"\tScore : {cv_score}")
+    best_row = cv_results.iloc[cv_results['Score'].idxmax()]
+    print(f"\tBest Score : {best_row['Score']} with params: {best_row['Params']}")
 
-    results.append(
-        {
-            "Model": model_name,
-            "Score": cv_score,
-            "Params": params,
-        }
-    )
+    cv_results['Model'] = model_name
+    cv_results['Dataset'] = dataset_name
 
-results = pd.DataFrame(results)
+    results_df = pd.concat([results_df, cv_results], ignore_index=True)
+
 print(f"\nTraining completed ({time.time() - start_time} sec)")
-print(results)
-
-# Print results
+print(results_df)
