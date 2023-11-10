@@ -20,7 +20,7 @@ def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None):
         model_params (dict, optional): Keywords to pass to the model. Defaults to {}.
 
     Returns:
-        TBD: TBD, all possible combinations and their score? best model and its score? best params?
+        pd.DataFrame: Score of each combination
     """
     kf = KFold(n_splits=cv, shuffle=False)
 
@@ -54,12 +54,7 @@ def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None):
 
         score /= cv
 
-        if not comb_ok:
-            # print(f"\t\tInvalid combination")
-            ...
-
-        else:
+        if comb_ok:
             results.append({'Params': each_comb, 'Score': score})
-            # print(f"\t\tScore: {score}\n")
 
-    return pd.DataFrame(results)  # scores.mean()
+    return pd.DataFrame(results)
