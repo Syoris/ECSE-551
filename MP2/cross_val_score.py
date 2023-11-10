@@ -34,7 +34,8 @@ def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None):
         all_combs = [{}]
 
     # Find the best combination w/ CV
-    for each_comb in all_combs:
+    for i, each_comb in enumerate(all_combs):
+        print(f'\r\tCombination {i+1}/{len(all_combs)}', end='')
         model = model_class(**base_params, **each_comb) # Create model with curr params combination
         # print(f"\tParams: {each_comb}", end='')
 
@@ -56,5 +57,7 @@ def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None):
 
         if comb_ok:
             results.append({'Params': each_comb, 'Score': score})
+
+    print('')  # To move cursor to next line
 
     return pd.DataFrame(results)
