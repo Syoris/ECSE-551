@@ -7,6 +7,7 @@ from sklearn.naive_bayes import BernoulliNB, GaussianNB
 from sklearn import svm
 from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import AdaBoostClassifier
 
 import numpy as np
 import pandas as pd
@@ -53,23 +54,34 @@ words_to_test = Data(filenames[1], train = False)
 
 max_features = 3000
 
-train_dataset = Format_data(words_to_train, max_feat=max_features, dataset_name='Dataset 1')
+dataset_list = []
+
+dataset_list.append(Format_data(words_to_train, max_feat=max_features, dataset_name='DS 1'))
+dataset_list.append(Format_data(words_to_train, max_feat=max_features, dataset_name='DS 2 - 2grams', n_gram=(1, 2)))
+dataset_list.append(Format_data(words_to_train, max_feat=max_features, dataset_name='DS 3 - 3grams', n_gram=(1, 3)))
+dataset_list.append(Format_data(words_to_train, max_feat=max_features, dataset_name='DS 4 - 2grams, tf', n_gram=(1, 2), use_tf_idf=True))
+dataset_list.append(Format_data(words_to_train, max_feat=max_features, dataset_name='DS 5 - 3grams, tf', n_gram=(1, 3), use_tf_idf=True))
+dataset_list.append(Format_data(words_to_train, max_feat=max_features, dataset_name='DS 6 - PCA 100', n_gram=(1, 2)))
+dataset_list.append(Format_data(words_to_train, max_feat=max_features, dataset_name='DS 6 - PCA 100', n_gram=(1, 2)))
+
+dataset_list.append(Format_data(words_to_train, max_feat=None, dataset_name='DS 6 - PCA 100', n_gram=(1, 2), use_tf_idf=True, pca_n_components=100))
+dataset_list.append(Format_data(words_to_train, max_feat=None, dataset_name='DS 7 - PCA 500', n_gram=(1, 2), use_tf_idf=True, pca_n_components=500))
+
 
 ##
 model_list = {}
-model_list["My NB"] = {
-    "model": NaiveBayes,
-    "train_data": train_dataset,
-    'base_params': {'laplace_smoothing': True, 'k_cv': 0, 'verbose': False},
-    'cv_params': None
-}
+# model_list["My NB"] = {
+#     "model": NaiveBayes,
+#     'base_params': {'laplace_smoothing': True, 'k_cv': 0, 'verbose': False},
+#     'cv_params': None
+# }
 
-model_list["SK Bernoulli NB"] = {
-    "model": BernoulliNB,
-    "train_data": train_dataset,
-    'base_params': {},
-    'cv_params': None
-}
+# model_list["SK Bernoulli NB"] = {
+#     "model": BernoulliNB,
+#     "train_data": train_dataset,
+#     'base_params': {},
+#     'cv_params': None
+# }
 
 # model_list["SVC"] = {
 #     "model": svm.SVC,
@@ -80,18 +92,24 @@ model_list["SK Bernoulli NB"] = {
 #
 model_list['DT'] = {
     "model": tree.DecisionTreeClassifier,
-    "train_data": train_dataset,
     "base_params": {},
-    "cv_params": {"max_depth": [None, 10, 100], "min_samples_split": [1, 0.01, 0.005]},
+    "cv_params": {"max_depth": [None, 100], "min_samples_split": [0.01, 0.005, 0.0001]},
+    # "cv_params": {"max_depth": [None], "min_samples_split": [0.005]},
 }
 
-model_list['Random Forest'] = {
-    "model": RandomForestClassifier,
-    "train_data": train_dataset,
-    "base_params": {},
+# model_list['Random Forest'] = {
+#     "model": RandomForestClassifier,
+#     "base_params": {},
+#     "cv_params": None,
+# }
+
+model_list['AdaBoost'] = {
+    "model": AdaBoostClassifier,
+    "base_params": {'n_estimators': 100, 'random_state': 0},
     "cv_params": None,
 }
-#
+
+#TODO: Add KNN
 
 # Cross-Validation
 n_fold = 5
@@ -101,45 +119,46 @@ start_time = time.time()
 print(f"--------- Training all models ---------")
 for model_name, model_info in model_list.items():
     model = model_info["model"]
-    model_train_data = model_info["train_data"]
     base_params = model_info["base_params"]
     cv_params = model_info["cv_params"]
-    dataset_name = model_train_data.name
-
-    X_train = model_train_data.X
-    y_train = model_train_data.Y
 
     print(f"Model : {model_name}")
+    for each_dataset in dataset_list:
+        dataset_name = each_dataset.name
+        print(f"\tDataset : {dataset_name}")
 
-    # Cross_validation
-    cv_results = cross_val_score(
-        model, X_train, y_train, cv=n_fold, base_params=base_params, cv_params=cv_params
-    )
+        X_train = each_dataset.X
+        y_train = each_dataset.Y
 
-    best_row = cv_results.iloc[cv_results['Score'].idxmax()]
-    print(f"\tBest Score : {best_row['Score']} with params: {best_row['Params']}\n")
 
-    cv_results['Model'] = model_name
-    cv_results['Dataset'] = dataset_name
+        # Cross_validation
+        cv_results = cross_val_score(
+            model, X_train, y_train, cv=n_fold, base_params=base_params, cv_params=cv_params
+        )
 
-    results_df = pd.concat([results_df, cv_results], ignore_index=True)
+        best_row = cv_results.iloc[cv_results['Score'].idxmax()]
+        print(f"\t\tBest Score : {best_row['Score']} with params: {best_row['Params']}\n")
+
+        cv_results['Model'] = model_name
+        cv_results['Dataset'] = dataset_name
+
+        results_df = pd.concat([results_df, cv_results], ignore_index=True)
 
 print(f"\nTraining completed ({time.time() - start_time} sec)\n")
-print(f"Results dataframe:")
-print(results_df)
 
 print(f"\n\n--------- Processing the results ---------")
 print(f"### Ordered Models ###")
-print(results_df.sort_values(by=['Score'], ascending=False))
+print((results_df.sort_values(by=['Score'], ascending=False)).to_string())
 
-print(f'\n\n### Best of each model ###')
+# print(f'\n\n### Best of each model ###')
 idx_max_scores = results_df.groupby('Model')['Score'].idxmax()
 best_models_df = results_df.loc[idx_max_scores]
-print(best_models_df.sort_values(by=['Score'], ascending=False))
+# print((best_models_df.sort_values(by=['Score'], ascending=False)).to_string())
 
-print(f"\n\n### Best Model ###")
+# print(f"\n\n### Best Model ###")
 best_model = best_models_df.loc[best_models_df['Score'].idxmax()]
-print(best_model)
+# print(best_model)
 
-...
-print(results_df[results_df['Model'] == 'DT'])
+print("\n------------------------")
+print(f"BEST ACCURACY: {best_model['Score']*100}%")
+print("------------------------")

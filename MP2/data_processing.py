@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 from sklearn.feature_extraction import text
 from nltk import word_tokenize
 
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.decomposition import PCA
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 
@@ -37,12 +38,27 @@ class Data:
 
 
 class Format_data:
-    def __init__(self, words_to_train: Data, max_feat: int=3000, dataset_name:str = 'NoName'):
+    def __init__(self, words_to_train: Data,
+                 max_feat: int | None = 3000,
+                 dataset_name:str = 'NoName',
+                 n_gram: tuple = (1, 1),
+                 binary_features: bool = True, # If true, features are binary, false features are the frequency
+                 use_tf_idf: bool = False,
+                 pca_n_components: int = 1, # If >1, uses PCA
+                 ):
+        # TODO: Add options
+        #   - Lemmatiztion
+        #   - PCA / feature selection
+        #   - language...?
+
         self.words_to_train = words_to_train
-
         self.name: str = dataset_name
-
         self.max_feat = max_feat
+        self._n_gram = n_gram
+        self._binary_features = binary_features
+        self._use_tf_idf = use_tf_idf
+        self._pca_n_components = pca_n_components
+
 
         self.data_text = words_to_train.data_list  # word bank
         self.Y = words_to_train.labels
@@ -51,7 +67,10 @@ class Format_data:
 
         self.data_text = self.process_()  # All samples in text format. (renamed from features)
 
+
         self.X, self.vectorizer = self.count_vectorizer()  # vectorizer: To transform text to a vector
+
+        self._feature_selection()
 
         self.features_name = self.vectorizer.get_feature_names_out()  # Corresponding features of vectorizer
 
@@ -65,11 +84,21 @@ class Format_data:
             vectorizer and vectorized dataset
 
         """
-        vectorizer = CountVectorizer(stop_words=self.stop_words,
-                                     max_features=self.max_feat,
-                                     binary=True, )
+        if not self._use_tf_idf:
+            vectorizer = CountVectorizer(stop_words=self.stop_words,
+                                         max_features=self.max_feat,
+                                         ngram_range=self._n_gram,
+                                         binary=self._binary_features,
+                                         )
 
-        # Learn the vocabulary dictionnary and return document term matrix
+        else:
+            vectorizer = TfidfVectorizer(stop_words=self.stop_words,
+                                         max_features=self.max_feat,
+                                         ngram_range=self._n_gram,
+                                         binary=False,
+                                         )
+
+        # Learn the vocabulary dictionary and return document term matrix
         X = vectorizer.fit_transform(self.data_text)
 
         # print(vectorizer.get_feature_names_out())
@@ -104,3 +133,29 @@ class Format_data:
                 self.data_text.remove(word)
 
         return self.data_text
+
+    def _feature_selection(self):
+        """
+        To perform PCA analysis
+        """
+        if self._pca_n_components == 1:
+            return
+
+        pca = PCA(n_components=None)
+
+        self.X = pca.fit_transform(self.X)
+
+        plot = False
+        if plot:
+            sing_values = pca.singular_values_
+
+            # Plot the singular values
+            plt.plot(np.arange(1, len(sing_values) + 1), sing_values, marker='o')
+            plt.title('Singular Values')
+            plt.xlabel('Principal Components')
+            plt.ylabel('Singular Values')
+            plt.grid(True)
+            plt.show()
+
+            ...
+
