@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import scipy.sparse as sp
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction import text
 from nltk import word_tokenize
@@ -78,10 +79,8 @@ class Format_data:
                  use_tf_idf: bool = False,
                  pca_n_components: int = 1, # If >1, uses PCA
                  lemmatize: bool = False,
+                 lang_id:bool = False,  # If true, add a feature for the language (0: en, 1:fr)
                  ):
-        # TODO: Add options
-        #   - Lemmatiztion
-        #   - language...?
 
         self.words_to_train = words_to_train
         self.name: str = dataset_name
@@ -91,18 +90,19 @@ class Format_data:
         self._use_tf_idf = use_tf_idf
         self._pca_n_components = pca_n_components
         self._lemmatize = lemmatize
+        self._lang_id = lang_id
 
         self.data_text = words_to_train.data_list  # word bank
         self.Y = words_to_train.labels
 
         self.stop_words = self.stopwords()
-        self._detect_lang()
 
         self.data_text = self.process_()  # All samples in text format. (renamed from features)
 
 
         self.X, self.vectorizer = self.count_vectorizer()  # vectorizer: To transform text to a vector
 
+        self._add_lang()
         self._feature_selection()
 
         self.features_name = self.vectorizer.get_feature_names_out()  # Corresponding features of vectorizer
@@ -185,9 +185,11 @@ class Format_data:
 
         pca = PCA(n_components=None)
 
+        if isinstance(self.X, sp.csr_matrix):
+            self.X = self.X.toarray()
         self.X = pca.fit_transform(self.X)
 
-        plot = False
+        plot = True
         if plot:
             sing_values = pca.singular_values_
 
@@ -196,8 +198,16 @@ class Format_data:
             plt.title('Singular Values')
             plt.xlabel('Principal Components')
             plt.ylabel('Singular Values')
+            plt.axvline(x=self._pca_n_components, color='red', linestyle='--', ymin=0, ymax=1, linewidth=2)
             plt.grid(True)
-            plt.show()
+            plt.show(block=False)
 
-            ...
+    def _add_lang(self):
+        """
+        Add a feature with the language of the post (en:0, fr:1)
+        """
+        if self._lang_id:
+            lang_array = (self.words_to_train.data['lang'] == 'fr').astype(int).to_numpy() # 0: en, 1:fr
+            lang_sparse = sp.csr_matrix(lang_array).reshape(-1, 1)
 
+            self.X = sp.csr_matrix(sp.hstack([self.X, lang_sparse]))
