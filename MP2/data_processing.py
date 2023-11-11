@@ -14,6 +14,11 @@ from nltk.corpus import wordnet
 from nltk import word_tokenize
 from nltk.stem import WordNetLemmatizer
 
+import langid
+from langid.langid import LanguageIdentifier, model
+langid.set_languages(['en', 'fr'])
+lang_identifier = LanguageIdentifier.from_modelstring(model, norm_probs=True)
+
 def get_wordnet_pos(word):
     """Map POS tag to first character lemmatize() accepts"""
     tag = nltk.pos_tag([word])[0][1][0].upper()
@@ -37,6 +42,7 @@ class Data:
         self.train: bool = train
 
         self.data: pd.DataFrame = self.readData(self.file)
+        self._detect_lang()
 
         # Extract the subsets
         self.data_list: list = self.data['body'].to_list()  # List of all samples
@@ -50,13 +56,18 @@ class Data:
     # Read the data
     def readData(self, file):
         if self.train:
-            load_data = pd.read_csv(file, header=None, encoding='latin-1', skiprows=[0], names=['body', 'label'])
+            load_data = pd.read_csv(file, header=None, encoding='utf-8', skiprows=[0], names=['body', 'label'])
 
         else:
-            load_data = pd.read_csv(file, header=None, encoding='latin-1', skiprows=[0], names=['id', 'body'])
+            load_data = pd.read_csv(file, header=None, encoding='utf-8', skiprows=[0], names=['id', 'body'])
 
         return load_data
 
+    def _detect_lang(self):
+        """
+        To find the language (fr or en) of each post
+        """
+        self.data['lang'] = self.data['body'].apply(lambda x: lang_identifier.classify(x)[0])
 
 class Format_data:
     def __init__(self, words_to_train: Data,
@@ -85,6 +96,7 @@ class Format_data:
         self.Y = words_to_train.labels
 
         self.stop_words = self.stopwords()
+        self._detect_lang()
 
         self.data_text = self.process_()  # All samples in text format. (renamed from features)
 
