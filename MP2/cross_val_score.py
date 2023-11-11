@@ -44,6 +44,9 @@ def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None):
         comb_ok = True  # Set to False if the combination of parameters is invalid
 
         for i, (train_idx, test_idx) in enumerate(kf.split(X)):
+            if not comb_ok:
+                break
+
             X_train = X[train_idx]
             X_test = X[test_idx]
             y_train = y[train_idx]

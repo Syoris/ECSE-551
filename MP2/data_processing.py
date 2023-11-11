@@ -9,6 +9,27 @@ from sklearn.decomposition import PCA
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 
+import nltk
+from nltk.corpus import wordnet
+from nltk import word_tokenize
+from nltk.stem import WordNetLemmatizer
+
+def get_wordnet_pos(word):
+    """Map POS tag to first character lemmatize() accepts"""
+    tag = nltk.pos_tag([word])[0][1][0].upper()
+    tag_dict = {"J": wordnet.ADJ,
+                "N": wordnet.NOUN,
+                "V": wordnet.VERB,
+                "R": wordnet.ADV}
+    return tag_dict.get(tag, wordnet.NOUN)
+
+class LemmaTokenizer:
+    def __init__(self):
+        self.wnl = WordNetLemmatizer()
+
+    def __call__(self, doc):
+        return [self.wnl.lemmatize(t, pos=get_wordnet_pos(t)) for t in word_tokenize(doc) if t.isalpha()]
+
 class Data:
     def __init__(self, file, train=False):
         # Download the csv data
@@ -45,10 +66,10 @@ class Format_data:
                  binary_features: bool = True, # If true, features are binary, false features are the frequency
                  use_tf_idf: bool = False,
                  pca_n_components: int = 1, # If >1, uses PCA
+                 lemmatize: bool = False,
                  ):
         # TODO: Add options
         #   - Lemmatiztion
-        #   - PCA / feature selection
         #   - language...?
 
         self.words_to_train = words_to_train
@@ -58,7 +79,7 @@ class Format_data:
         self._binary_features = binary_features
         self._use_tf_idf = use_tf_idf
         self._pca_n_components = pca_n_components
-
+        self._lemmatize = lemmatize
 
         self.data_text = words_to_train.data_list  # word bank
         self.Y = words_to_train.labels
@@ -84,11 +105,19 @@ class Format_data:
             vectorizer and vectorized dataset
 
         """
+        # Set tokenizer
+        if self._lemmatize:
+            tokenizer = LemmaTokenizer()
+        else:
+            tokenizer = None
+
+
         if not self._use_tf_idf:
             vectorizer = CountVectorizer(stop_words=self.stop_words,
                                          max_features=self.max_feat,
                                          ngram_range=self._n_gram,
                                          binary=self._binary_features,
+                                         tokenizer=tokenizer
                                          )
 
         else:
@@ -96,15 +125,16 @@ class Format_data:
                                          max_features=self.max_feat,
                                          ngram_range=self._n_gram,
                                          binary=False,
+                                         tokenizer=tokenizer
                                          )
 
         # Learn the vocabulary dictionary and return document term matrix
         X = vectorizer.fit_transform(self.data_text)
 
         # print(vectorizer.get_feature_names_out())
-        X_bin = X.toarray()  # TODO: Check which format is more efficient
+        # X_bin = X.toarray()  # TODO: Check which format is more efficient
 
-        return X_bin, vectorizer
+        return X, vectorizer
 
     def process_(self):
         new_data = self.punctuation()
