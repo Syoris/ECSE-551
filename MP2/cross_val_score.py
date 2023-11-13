@@ -61,6 +61,4 @@ def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None):
         if comb_ok:
             results.append({'Params': each_comb, 'Score': score})
 
-    print('')  # To move cursor to next line
-
     return pd.DataFrame(results)
