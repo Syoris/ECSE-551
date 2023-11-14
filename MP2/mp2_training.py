@@ -9,7 +9,7 @@ from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.neighbors import KNeighborsClassifier
-
+from sklearn.neural_network import MLPClassifier
 from NaiveBayes import NaiveBayes
 from cross_val_score import cross_val_score
 from data_processing import Data, Format_data
@@ -21,14 +21,13 @@ import time
 from datetime import datetime
 
 
-
 # import nltk
 # nltk.download('stopwords')
 # nltk.download('punkt')
 # nltk.download('wordnet')
 # nltk.download('averaged_perceptron_tagger')
 
-#TODO
+# TODO
 # - Viz important features
 # - Predict test dataset
 
@@ -41,49 +40,126 @@ print(f'Done')
 
 max_features = 3000
 
-dataset_list = []
+# Datasets
+ds_options = [
+    # Base dataset
+    {
+        'dataset_name': 'Base',
+        'max_feat': 3000,
+        'lemmatize': False,
+        'lang_id': False,
+        'feat_select': None,
+    },
+    # Only with lang added
+    {
+        'dataset_name': 'Lang',
+        'max_feat': 3000,
+        'lang_id': True,
+        'lemmatize': False,
+        'feat_select': None,
+        'standardize_data': False,
+    },
+    # Lang normalized
+    {
+        'dataset_name': 'Lang Normalized',
+        'max_feat': 3000,
+        'lang_id': True,
+        'lemmatize': False,
+        'feat_select': None,
+        'standardize_data': False,
+    },
+    # Lang + TF IDF normalized
+    {
+        'dataset_name': 'TF IDF - Normalized',
+        'max_feat': 3000,
+        'lang_id': True,
+        'lemmatize': False,
+        'feat_select': None,
+        'use_tf_idf': True,
+        'standardize_data': True,
+    },
+    # TEST
+    {
+        'dataset_name': 'TF IDF - No accent',
+        'max_feat': 3000,
+        'lang_id': True,
+        'lemmatize': False,
+        'feat_select': None,
+        'use_tf_idf': True,
+        'standardize_data': True,
+        'rm_accents': True,
+    },
+    # # TF IDF - No Max
+    # {
+    #     'dataset_name': 'TF IDF - No Max',
+    #     'max_feat': 3000,
+    #     'lang_id': True,
+    #     'lemmatize': False,
+    #     'feat_select': None,
+    #     'use_tf_idf': True,
+    #     'standardize_data': True,
+    # },
+    # MI 100
+    # {
+    #     'dataset_name': 'MI 100',
+    #     'max_feat': max_features,
+    #     'lemmatize': True,
+    #     'lang_id': True,
+    #     'feat_select': 'MI',
+    #     'mi_n_feat': 100,
+    # },
+]
 
 print(f"Processing input data...")
-# dataset_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='BASE'))
-dataset_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='L', lang_id=True))
-dataset_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='MI 100', lemmatize=True, lang_id=True, feat_select='MI', n_mi=100))
-# dataset_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='MI 500', lemmatize=True, lang_id=True, feat_select='MI', n_mi=500))
-# dataset_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='MI 1000', lemmatize=True, lang_id=True, feat_select='MI', n_mi=1000))
-#
-#
-# dataset_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='TF - MI 100', use_tf_idf=True, lemmatize=True, lang_id=True, feat_select='MI', n_mi=100))
-# dataset_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='TF - MI 500', use_tf_idf=True, lemmatize=True, lang_id=True, feat_select='MI', n_mi=500))
-# dataset_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='TF - MI 1000', use_tf_idf=True, lemmatize=True, lang_id=True, feat_select='MI', n_mi=1000))
-#
-# dataset_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='TF - MI 500 - 2G', n_gram=(1, 2), use_tf_idf=True, lemmatize=True, lang_id=True, feat_select='MI', n_mi=500))
-# dataset_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='MI 500 - 2G', n_gram=(1, 2), use_tf_idf=False, lemmatize=True, lang_id=True, feat_select='MI', n_mi=500))
+ds_list = []
+for each_ds in ds_options:
+    ds_list.append(Format_data(words_dataset, **each_ds))
 
 
-# dataset_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='Le_L', lang_id=True, lemmatize=True))
+# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='MI 500', lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=500))
+# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='MI 1000', lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=1000))
 #
-# dataset_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='Le_L_TF', lang_id=True, lemmatize=True, use_tf_idf=True))
 #
-# dataset_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_2g', n_gram=(1, 2), lemmatize=True, use_tf_idf=False, lang_id=True))
+# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='TF - MI 100', use_tf_idf=True, lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=100))
+# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='TF - MI 500', use_tf_idf=True, lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=500))
+# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='TF - MI 1000', use_tf_idf=True, lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=1000))
+#
+# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='TF - MI 500 - 2G', n_gram=(1, 2), use_tf_idf=True, lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=500))
+# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='MI 500 - 2G', n_gram=(1, 2), use_tf_idf=False, lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=500))
+
+
+# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='Le_L', lang_id=True, lemmatize=True))
+#
+# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='Le_L_TF', lang_id=True, lemmatize=True, use_tf_idf=True))
+#
+# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_2g', n_gram=(1, 2), lemmatize=True, use_tf_idf=False, lang_id=True))
 
 #
-# dataset_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_2g', n_gram=(1, 2), lemmatize=True, use_tf_idf=True, lang_id=True))
-# dataset_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_3g', n_gram=(1, 3), lemmatize=True, use_tf_idf=True, lang_id=True))
+# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_2g', n_gram=(1, 2), lemmatize=True, use_tf_idf=True, lang_id=True))
+# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_3g', n_gram=(1, 3), lemmatize=True, use_tf_idf=True, lang_id=True))
 #
-# dataset_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_2g_PCA 100', n_gram=(1, 2), lemmatize=True, use_tf_idf=True, lang_id=True, pca_n_components=100))
-# dataset_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_3g_PCA 100', n_gram=(1, 3), lemmatize=True, use_tf_idf=True, lang_id=True, pca_n_components=100))
+# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_2g_PCA 100', n_gram=(1, 2), lemmatize=True, use_tf_idf=True, lang_id=True, pca_n_feat=100))
+# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_3g_PCA 100', n_gram=(1, 3), lemmatize=True, use_tf_idf=True, lang_id=True, pca_n_feat=100))
 #
-# dataset_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_2g_PCA 500', n_gram=(1, 2), lemmatize=True, use_tf_idf=True, lang_id=True, pca_n_components=500))
-# dataset_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_3g_PCA 500', n_gram=(1, 3), lemmatize=True, use_tf_idf=True, lang_id=True, pca_n_components=500))
+# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_2g_PCA 500', n_gram=(1, 2), lemmatize=True, use_tf_idf=True, lang_id=True, pca_n_feat=500))
+# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_3g_PCA 500', n_gram=(1, 3), lemmatize=True, use_tf_idf=True, lang_id=True, pca_n_feat=500))
+
+
+def print_features(ds: Format_data):
+    if ds._feat_selector is None:
+        print(ds.features_name)
+
+    # See best features:
+    sel = ds_list[1].mi_selector
+    names = np.append(ds_list[1]._vectorizer.get_feature_names_out(), 'lang')[sel.get_support()]
+    scores = sel.scores_[sel.get_support()]
+    names_scores = list(zip(names, scores))
+    ns_df = pd.DataFrame(data=names_scores, columns=['Feat_names', 'F_Scores'])
+    ns_df_sorted = ns_df.sort_values(['F_Scores', 'Feat_names'], ascending=[False, True])
+    print(ns_df_sorted)
+
+
 print(f'Done')
-
-# # See best features:
-# sel = dataset_list[1].mi_selector
-# names = np.append(dataset_list[1].vectorizer.get_feature_names_out(), 'lang')[sel.get_support()]
-# scores = sel.scores_[sel.get_support()]
-# names_scores = list(zip(names, scores))
-# ns_df = pd.DataFrame(data = names_scores, columns=['Feat_names', 'F_Scores'])
-# ns_df_sorted = ns_df.sort_values(['F_Scores', 'Feat_names'], ascending = [False, True])
-# print(ns_df_sorted)
 
 
 ##
@@ -102,11 +178,11 @@ model_dict = {}
 # }
 
 
-model_dict["KNN"] = {
-    "model": KNeighborsClassifier,
-    "base_params": {},
-    "cv_params": {"n_neighbors": [3, 5, 9], "weights": ['distance']},
-}
+# model_dict["KNN"] = {
+#     "model": KNeighborsClassifier,
+#     "base_params": {},
+#     "cv_params": {"n_neighbors": [3, 5, 9], "weights": ['distance']},
+# }
 
 # model_dict["SVC"] = {
 #     "model": svm.SVC,
@@ -114,12 +190,12 @@ model_dict["KNN"] = {
 #     "cv_params": {"kernel": ['linear', 'poly', 'rbf', 'sigmoid'], "C": [0.1, 1, 10]},
 # }
 
-# model_dict['DT'] = {
-#     "model": tree.DecisionTreeClassifier,
-#     "base_params": {},
-#     # "cv_params": {"max_depth": [None, 100], "min_samples_split": [0.01, 0.005, 0.0001]},
-#     "cv_params": {"max_depth": [100, 500], "min_samples_split": [0.0001, 0.000001]},
-# }
+model_dict['DT'] = {
+    "model": tree.DecisionTreeClassifier,
+    "base_params": {'random_state': 0},
+    # "cv_params": {"max_depth": [50, 100, 500], "min_samples_split": [0.0001]},
+    "cv_params": {"max_depth": [50], "min_samples_split": [0.0001]},
+}
 
 # model_dict['Random Forest'] = {
 #     "model": RandomForestClassifier,
@@ -131,6 +207,13 @@ model_dict["KNN"] = {
 #     "model": AdaBoostClassifier,
 #     "base_params": {'random_state': 0},
 #     "cv_params": {"n_estimators": [50, 100, 500]},
+# }
+
+# model_dict['MLP'] = {
+#     "model": MLPClassifier,
+#     "base_params": {'solver': 'adam', 'random_state': 0, 'max_iter': 1000},
+#     # "cv_params": {"alpha": [1e-5], 'hidden_layer_sizes': [(5, 2), (10, 5, 2), (50, 10), (3, 2)]},
+#     "cv_params": {"alpha": [1e-5], 'hidden_layer_sizes': [(10, 5, 2)]},
 # }
 
 
@@ -148,15 +231,14 @@ def find_best_model():
 
         print(f"\nModel : {model_name}")
         model_start = time.time()
-        for ds_idx, each_dataset in enumerate(dataset_list):
+        for ds_idx, each_dataset in enumerate(ds_list):
             try:
                 ds_start = time.time()
                 dataset_name = each_dataset.name
-                print(f"\tDataset [{ds_idx+1}/{len(dataset_list)}]: {dataset_name}")
+                print(f"\tDataset [{ds_idx+1}/{len(ds_list)}]: {dataset_name}")
 
                 X_train = each_dataset.X
                 y_train = each_dataset.Y
-
 
                 # Cross_validation
                 cv_results = cross_val_score(
@@ -206,9 +288,9 @@ def process_results_and_predict():
 
     print(f"### Training Best Model ###")
     best_model = best_model_data['Model']
-    best_ds = next((ds for ds in dataset_list if ds.name == best_model_data['Dataset']), None)
+    best_ds = next((ds for ds in ds_list if ds.name == best_model_data['Dataset']), None)
 
-    best_model_score = best_model_data['Score']*100
+    best_model_score = best_model_data['Score'] * 100
     best_model_acc = best_model_data['Acc'] * 100
 
     print("\n------------------------")
@@ -220,9 +302,12 @@ def process_results_and_predict():
     y_test = best_model.predict(best_ds.X_test)
     pred_df = pd.DataFrame(y_test, columns=['subreddit'])
     pred_df.index.name = 'id'
-    pred_save_path = f'MP2/predictions/pred_{int(best_model_score.round())}_{datetime.now().strftime(("%y%m%d_%H%M"))}.csv'
+    pred_save_path = (
+        f'MP2/predictions/pred_{int(best_model_score.round())}_{datetime.now().strftime(("%y%m%d_%H%M"))}.csv'
+    )
     pred_df.to_csv(pred_save_path)
     print(f'Predictions saved to {pred_save_path}')
+
 
 if __name__ == '__main__':
     find_best_model()
