@@ -110,10 +110,10 @@ class Format_data:
         lang_id: bool = False,  # If true, add a feature for the language (0: en, 1:fr)
         rm_accents: bool = False,  # To remove accents
         standardize_data: bool = True,  # To remove mean and std of all data
+        min_df: int = 1,  # Ignore terms w/ frequency lower than that
         # Feature selection options
-        feat_select: Literal['PCA', 'MI'] | None = None,  # Can be 'PCA', 'MI' or None
-        pca_n_feat: int = 1,  # If `feat_select` is PCA, number of features to keep
-        mi_n_feat: int = 100,
+        feat_select: Literal['PCA', 'MI', 'F_CL'] | None = None,
+        n_feat_select: int = 1,  # Number of features to keep
     ):
         self.name: str = dataset_name
         print(f"\tProcessing of: {self.name}... ", end='')
@@ -143,11 +143,11 @@ class Format_data:
         self._lang_id = lang_id
         self._standardize_data = standardize_data
         self._rm_accents = rm_accents
+        self._min_df = min_df
 
         # Feature selection
         self._feat_select_opt = feat_select
-        self._mi_n_feat = mi_n_feat
-        self._pca_n_feat = pca_n_feat
+        self._n_feat_select = n_feat_select
 
         # Train labels
         self.Y = words_dataset.labels
@@ -211,6 +211,7 @@ class Format_data:
                 tokenizer=tokenizer,
                 token_pattern=token_pattern,
                 strip_accents=strip_accents,
+                min_df=self._min_df,
             )
 
         else:
@@ -222,6 +223,7 @@ class Format_data:
                 tokenizer=tokenizer,
                 token_pattern=token_pattern,
                 strip_accents=strip_accents,
+                min_df=self._min_df,
             )
 
         # Learn the vocabulary dictionary and return document term matrix
@@ -280,13 +282,11 @@ class Format_data:
         feat_selector = None
         # PCA
         if self._feat_select_opt == 'PCA':
-            if self._pca_n_feat == 1:
-                return
-
-            pca_selector = PCA(n_components=None)
+            pca_selector = PCA(n_components=self._n_feat_select)
 
             if isinstance(self.X, sp.csr_matrix):
                 self.X = self.X.toarray()
+
             self.X = pca_selector.fit_transform(self.X)
             self.X_test = pca_selector.transform(self.X_test)
 
@@ -299,7 +299,7 @@ class Format_data:
                 plt.title(f'Singular Values - {self.name}')
                 plt.xlabel('Principal Components')
                 plt.ylabel('Singular Values')
-                plt.axvline(x=self._pca_n_feat, color='red', linestyle='--', ymin=0, ymax=1, linewidth=2)
+                plt.axvline(x=self._n_feat_select, color='red', linestyle='--', ymin=0, ymax=1, linewidth=2)
                 plt.grid(True)
                 plt.show(block=False)
 
@@ -315,14 +315,44 @@ class Format_data:
 
             # MI_info = mutual_info_classif(X=self.X.toarray(), y=self.Y, discrete_features=discrete_features, random_state=0)
             my_score = partial(mutual_info_classif, random_state=0, discrete_features=discrete_feat)
-            mi_selector = SelectKBest(my_score, k=self._mi_n_feat)
+            mi_selector = SelectKBest(my_score, k=self._n_feat_select)
             self.X = mi_selector.fit_transform(X, self.Y)
-
             self.X_test = mi_selector.transform(self.X_test)
+
+            selected_feats = self.features_name[mi_selector.get_support()]
+            feat_scores = mi_selector.scores_[mi_selector.get_support()]
+            names_scores = list(zip(selected_feats, feat_scores))
+            feat_scores = pd.DataFrame(data=names_scores, columns=['Feat_names', 'Score'])
+            self._feat_scores = feat_scores.sort_values(['Score', 'Feat_names'], ascending=[False, True])
 
             self.features_name = mi_selector.get_feature_names_out(self.features_name)
 
             feat_selector = mi_selector
+
+        elif self._feat_select_opt == 'F_CL':
+            # if self._use_tf_idf:
+            #     discrete_feat = [self.X.shape[1] - 1]
+            #     X = self.X.toarray()
+            #
+            # else:
+            #     discrete_feat = True
+            #     X = self.X
+
+            # MI_info = mutual_info_classif(X=self.X.toarray(), y=self.Y, discrete_features=discrete_features, random_state=0)
+            feat_selector = SelectKBest(f_classif, k=self._n_feat_select)
+            X_trans = feat_selector.fit_transform(self.X, self.Y)
+
+            X_test_trans = feat_selector.transform(self.X_test)
+
+            selected_feats = self.features_name[feat_selector.get_support()]
+            feat_scores = feat_selector.scores_[feat_selector.get_support()]
+            names_scores = list(zip(selected_feats, feat_scores))
+            feat_scores = pd.DataFrame(data=names_scores, columns=['Feat_names', 'Score'])
+            self._feat_scores = feat_scores.sort_values(['Score', 'Feat_names'], ascending=[False, True])
+
+            self.features_name = feat_selector.get_feature_names_out(self.features_name)
+
+            self.X, self.X_test = X_trans, X_test_trans
 
         elif self._feat_select_opt is None:
             return

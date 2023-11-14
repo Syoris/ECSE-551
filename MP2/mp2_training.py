@@ -42,52 +42,84 @@ max_features = 3000
 
 # Datasets
 ds_options = [
-    # Base dataset
+    # # Base dataset
+    # {
+    #     'dataset_name': 'Base',
+    #     'max_feat': 3000,
+    #     'lemmatize': False,
+    #     'lang_id': False,
+    #     'feat_select': None,
+    # },
+    # # Only with lang added
+    # {
+    #     'dataset_name': 'Lang',
+    #     'max_feat': 3000,
+    #     'lang_id': True,
+    #     'lemmatize': False,
+    #     'feat_select': None,
+    #     'standardize_data': False,
+    # },
+    # # Lang + TF IDF normalized
+    # {
+    #     'dataset_name': 'TF IDF - Normalized',
+    #     'max_feat': 3000,
+    #     'lang_id': True,
+    #     'lemmatize': False,
+    #     'feat_select': None,
+    #     'use_tf_idf': True,
+    #     'standardize_data': True,
+    # },
+    # # 2G
+    # {
+    #     'dataset_name': '2G',
+    #     'max_feat': 3000,
+    #     'lang_id': True,
+    #     'n_gram': (1, 2),
+    #     'lemmatize': False,
+    #     'feat_select': None,
+    #     'use_tf_idf': False,
+    #     'standardize_data': True,
+    #     'rm_accents': False,
+    # },
+    # # 2G and TF-IDF
+    # {
+    #     'dataset_name': '2G TF',
+    #     'max_feat': 3000,
+    #     'lang_id': True,
+    #     'n_gram': (1, 2),
+    #     'lemmatize': False,
+    #     'feat_select': None,
+    #     'use_tf_idf': True,
+    #     'standardize_data': True,
+    #     'rm_accents': False,
+    # },
+    # Feature selection
     {
-        'dataset_name': 'Base',
-        'max_feat': 3000,
-        'lemmatize': False,
-        'lang_id': False,
-        'feat_select': None,
-    },
-    # Only with lang added
-    {
-        'dataset_name': 'Lang',
-        'max_feat': 3000,
+        'dataset_name': '3G - 1000 Ft',
+        'max_feat': None,
         'lang_id': True,
+        'n_gram': (1, 3),
         'lemmatize': False,
-        'feat_select': None,
-        'standardize_data': False,
-    },
-    # Lang normalized
-    {
-        'dataset_name': 'Lang Normalized',
-        'max_feat': 3000,
-        'lang_id': True,
-        'lemmatize': False,
-        'feat_select': None,
-        'standardize_data': False,
-    },
-    # Lang + TF IDF normalized
-    {
-        'dataset_name': 'TF IDF - Normalized',
-        'max_feat': 3000,
-        'lang_id': True,
-        'lemmatize': False,
-        'feat_select': None,
+        'feat_select': 'F_CL',
+        'n_feat_select': 1000,
         'use_tf_idf': True,
         'standardize_data': True,
+        'rm_accents': False,
+        'min_df': 2,
     },
-    # TEST
+    # Feature selection
     {
-        'dataset_name': 'TF IDF - No accent',
-        'max_feat': 3000,
+        'dataset_name': '3G - All Ft',
+        'max_feat': None,
         'lang_id': True,
+        'n_gram': (1, 3),
         'lemmatize': False,
-        'feat_select': None,
+        'feat_select': 'F_CL',
+        'n_feat_select': 'all',
         'use_tf_idf': True,
         'standardize_data': True,
-        'rm_accents': True,
+        'rm_accents': False,
+        'min_df': 2,
     },
     # # TF IDF - No Max
     # {
@@ -150,13 +182,6 @@ def print_features(ds: Format_data):
         print(ds.features_name)
 
     # See best features:
-    sel = ds_list[1].mi_selector
-    names = np.append(ds_list[1]._vectorizer.get_feature_names_out(), 'lang')[sel.get_support()]
-    scores = sel.scores_[sel.get_support()]
-    names_scores = list(zip(names, scores))
-    ns_df = pd.DataFrame(data=names_scores, columns=['Feat_names', 'F_Scores'])
-    ns_df_sorted = ns_df.sort_values(['F_Scores', 'Feat_names'], ascending=[False, True])
-    print(ns_df_sorted)
 
 
 print(f'Done')

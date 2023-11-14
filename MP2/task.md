@@ -34,7 +34,8 @@
   - https://towardsdatascience.com/4-python-libraries-to-detect-english-and-non-english-language-c82ad3efd430
   - https://medium.com/@monigrancharov/text-language-detection-with-python-beb49d9667b3
   - https://pypi.org/project/fasttext-langdetect/
-
+  - [preproc text data](https://datastud.dev/posts/nlp-preprocess)
+  - Google ML tuto
 
 - Text features:
     - https://www.nltk.org/api/nltk.html
