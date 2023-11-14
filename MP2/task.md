@@ -2,22 +2,26 @@
 
 ## Coding
 
-- [] Data loading
+- [x] Data loading
   - Load csv
   - Analysis?
   
-- [] Features
+- [x] Features
   - Feature expansion
   - PCA
 
 - [x] Nayve Bayes
 
-- [] Additional classifier
+- [x] Additional classifier
   - DT
   - SVM
   - ...
 
-- [] Model Validation
+- [x] Model Validation
+
+- Improve acc
+  - For each model -> train on whole dataset and measure score
+  - Test more features and feat selection ...
 
 - [] Kaggle submission
 

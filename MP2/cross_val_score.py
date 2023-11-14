@@ -59,6 +59,9 @@ def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None):
         score /= cv
 
         if comb_ok:
-            results.append({'Params': each_comb, 'Score': score})
+            # Train on whole ds
+            acc = model.fit(X, y).score(X, y)
+
+            results.append({'Params': each_comb, 'Score': score, 'Model': model, 'Acc': acc})
 
     return pd.DataFrame(results)
