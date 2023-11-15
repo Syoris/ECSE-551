@@ -4,7 +4,7 @@ from sklearn.model_selection import KFold
 import itertools
 
 
-def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None):
+def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None, results_df=None, ds_name=None):
     """To perform K-Fold validation to find the best combination of parameters for a given model.
 
     The parameters in `base_params` are kept the same for all tests.
@@ -36,8 +36,17 @@ def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None):
     # Find the best combination w/ CV
     for i, each_comb in enumerate(all_combs):
         print(f'\r\tCombination {i+1}/{len(all_combs)}', end='')
-        model = model_class(**base_params, **each_comb) # Create model with curr params combination
+        model = model_class(**base_params, **each_comb)  # Create model with curr params combination
         # print(f"\tParams: {each_comb}", end='')
+
+        # Check if model has already been trained on this ds
+        matching_row = results_df[
+            (results_df['Model'].apply(type) == type(model))
+            & (results_df['Params'] == each_comb)
+            & (results_df['Dataset'] == ds_name)
+        ]
+        if not matching_row.empty:
+            continue
 
         score = 0
 

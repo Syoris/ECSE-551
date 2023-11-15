@@ -95,32 +95,175 @@ ds_options = [
     # },
     # Feature selection
     {
-        'dataset_name': '3G - 1000 Ft',
+        'dataset_name': '3G - 500 Ft',
         'max_feat': None,
         'lang_id': True,
         'n_gram': (1, 3),
         'lemmatize': False,
         'feat_select': 'F_CL',
-        'n_feat_select': 1000,
+        'n_feat_select': 500,
         'use_tf_idf': True,
         'standardize_data': True,
         'rm_accents': False,
         'min_df': 2,
     },
-    # Feature selection
+    # {
+    #     'dataset_name': '3G - 1000 Ft',
+    #     'max_feat': None,
+    #     'lang_id': True,
+    #     'n_gram': (1, 3),
+    #     'lemmatize': False,
+    #     'feat_select': 'F_CL',
+    #     'n_feat_select': 1000,
+    #     'use_tf_idf': True,
+    #     'standardize_data': True,
+    #     'rm_accents': False,
+    #     'min_df': 2,
+    # },
+    # {
+    #     'dataset_name': '3G - 3000 Ft',
+    #     'max_feat': None,
+    #     'lang_id': True,
+    #     'n_gram': (1, 3),
+    #     'lemmatize': False,
+    #     'feat_select': 'F_CL',
+    #     'n_feat_select': 3000,
+    #     'use_tf_idf': True,
+    #     'standardize_data': True,
+    #     'rm_accents': False,
+    #     'min_df': 2,
+    # },
     {
-        'dataset_name': '3G - All Ft',
+        'dataset_name': '3G - 500 Ft - LEM',
         'max_feat': None,
         'lang_id': True,
         'n_gram': (1, 3),
-        'lemmatize': False,
+        'lemmatize': True,
         'feat_select': 'F_CL',
-        'n_feat_select': 'all',
+        'n_feat_select': 500,
         'use_tf_idf': True,
         'standardize_data': True,
         'rm_accents': False,
         'min_df': 2,
     },
+    # {
+    #     'dataset_name': '3G - 1000 Ft - LEM',
+    #     'max_feat': None,
+    #     'lang_id': True,
+    #     'n_gram': (1, 3),
+    #     'lemmatize': True,
+    #     'feat_select': 'F_CL',
+    #     'n_feat_select': 1000,
+    #     'use_tf_idf': True,
+    #     'standardize_data': True,
+    #     'rm_accents': False,
+    #     'min_df': 2,
+    # },
+    # {
+    #     'dataset_name': '3G - 3000 Ft - LEM',
+    #     'max_feat': None,
+    #     'lang_id': True,
+    #     'n_gram': (1, 3),
+    #     'lemmatize': True,
+    #     'feat_select': 'F_CL',
+    #     'n_feat_select': 1000,
+    #     'use_tf_idf': True,
+    #     'standardize_data': True,
+    #     'rm_accents': False,
+    #     'min_df': 2,
+    # },
+    {
+        'dataset_name': '50 FT',
+        'max_feat': None,
+        'lang_id': True,
+        'n_gram': (1, 3),
+        'lemmatize': False,
+        'feat_select': 'F_CL',
+        'n_feat_select': 50,
+        'use_tf_idf': True,
+        'standardize_data': True,
+        'rm_accents': False,
+        'min_df': 2,
+    },
+    {
+        'dataset_name': '50 FT - LEM',
+        'max_feat': None,
+        'lang_id': True,
+        'n_gram': (1, 3),
+        'lemmatize': True,
+        'feat_select': 'F_CL',
+        'n_feat_select': 50,
+        'use_tf_idf': True,
+        'standardize_data': True,
+        'rm_accents': False,
+        'min_df': 2,
+    },
+    {
+        'dataset_name': '100 FT',
+        'max_feat': None,
+        'lang_id': True,
+        'n_gram': (1, 3),
+        'lemmatize': False,
+        'feat_select': 'F_CL',
+        'n_feat_select': 100,
+        'use_tf_idf': True,
+        'standardize_data': True,
+        'rm_accents': False,
+        'min_df': 2,
+    },
+    {
+        'dataset_name': '100 FT - LEM',
+        'max_feat': None,
+        'lang_id': True,
+        'n_gram': (1, 3),
+        'lemmatize': True,
+        'feat_select': 'F_CL',
+        'n_feat_select': 100,
+        'use_tf_idf': True,
+        'standardize_data': True,
+        'rm_accents': False,
+        'min_df': 2,
+    },
+    {
+        'dataset_name': '250 FT',
+        'max_feat': None,
+        'lang_id': True,
+        'n_gram': (1, 3),
+        'lemmatize': False,
+        'feat_select': 'F_CL',
+        'n_feat_select': 250,
+        'use_tf_idf': True,
+        'standardize_data': True,
+        'rm_accents': False,
+        'min_df': 2,
+    },
+    {
+        'dataset_name': '250 FT - LEM',
+        'max_feat': None,
+        'lang_id': True,
+        'n_gram': (1, 3),
+        'lemmatize': True,
+        'feat_select': 'F_CL',
+        'n_feat_select': 250,
+        'use_tf_idf': True,
+        'standardize_data': True,
+        'rm_accents': False,
+        'min_df': 2,
+    },
+    # # Feature selection
+    # {
+    #     'dataset_name': '3G - All Ft',
+    #     'max_feat': None,
+    #     'lang_id': True,
+    #     'n_gram': (1, 3),
+    #     'lemmatize': False,
+    #     'feat_select': 'F_CL',
+    #     'n_feat_select': 'all',
+    #     'use_tf_idf': True,
+    #     'standardize_data': True,
+    #     'rm_accents': False,
+    #     'min_df': 2,
+    # },
     # # TF IDF - No Max
     # {
     #     'dataset_name': 'TF IDF - No Max',
@@ -147,43 +290,6 @@ ds_list = []
 for each_ds in ds_options:
     ds_list.append(Format_data(words_dataset, **each_ds))
 
-
-# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='MI 500', lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=500))
-# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='MI 1000', lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=1000))
-#
-#
-# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='TF - MI 100', use_tf_idf=True, lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=100))
-# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='TF - MI 500', use_tf_idf=True, lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=500))
-# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='TF - MI 1000', use_tf_idf=True, lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=1000))
-#
-# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='TF - MI 500 - 2G', n_gram=(1, 2), use_tf_idf=True, lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=500))
-# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='MI 500 - 2G', n_gram=(1, 2), use_tf_idf=False, lemmatize=True, lang_id=True, feat_select='MI', mi_n_feat=500))
-
-
-# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='Le_L', lang_id=True, lemmatize=True))
-#
-# ds_list.append(Format_data(words_dataset, max_feat=max_features, dataset_name='Le_L_TF', lang_id=True, lemmatize=True, use_tf_idf=True))
-#
-# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_2g', n_gram=(1, 2), lemmatize=True, use_tf_idf=False, lang_id=True))
-
-#
-# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_2g', n_gram=(1, 2), lemmatize=True, use_tf_idf=True, lang_id=True))
-# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_3g', n_gram=(1, 3), lemmatize=True, use_tf_idf=True, lang_id=True))
-#
-# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_2g_PCA 100', n_gram=(1, 2), lemmatize=True, use_tf_idf=True, lang_id=True, pca_n_feat=100))
-# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_3g_PCA 100', n_gram=(1, 3), lemmatize=True, use_tf_idf=True, lang_id=True, pca_n_feat=100))
-#
-# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_2g_PCA 500', n_gram=(1, 2), lemmatize=True, use_tf_idf=True, lang_id=True, pca_n_feat=500))
-# ds_list.append(Format_data(words_dataset, max_feat=None, dataset_name='Le_L_TF_3g_PCA 500', n_gram=(1, 3), lemmatize=True, use_tf_idf=True, lang_id=True, pca_n_feat=500))
-
-
-def print_features(ds: Format_data):
-    if ds._feat_selector is None:
-        print(ds.features_name)
-
-    # See best features:
-
-
 print(f'Done')
 
 
@@ -206,7 +312,8 @@ model_dict = {}
 # model_dict["KNN"] = {
 #     "model": KNeighborsClassifier,
 #     "base_params": {},
-#     "cv_params": {"n_neighbors": [3, 5, 9], "weights": ['distance']},
+#     # "cv_params": {"n_neighbors": [3, 5, 9], "weights": ['distance']},
+#     "cv_params": {"n_neighbors": [3], "weights": ['distance']},
 # }
 
 # model_dict["SVC"] = {
@@ -218,8 +325,11 @@ model_dict = {}
 model_dict['DT'] = {
     "model": tree.DecisionTreeClassifier,
     "base_params": {'random_state': 0},
-    # "cv_params": {"max_depth": [50, 100, 500], "min_samples_split": [0.0001]},
-    "cv_params": {"max_depth": [50], "min_samples_split": [0.0001]},
+    "cv_params": {
+        "max_depth": [5, 10, 25, 50, 100, 250, 500],
+        "min_samples_split": [3, 5, 10],
+    },
+    # "cv_params": {"max_depth": [50], "min_samples_split": [0.0001]},
 }
 
 # model_dict['Random Forest'] = {
@@ -234,18 +344,24 @@ model_dict['DT'] = {
 #     "cv_params": {"n_estimators": [50, 100, 500]},
 # }
 
-# model_dict['MLP'] = {
-#     "model": MLPClassifier,
-#     "base_params": {'solver': 'adam', 'random_state': 0, 'max_iter': 1000},
-#     # "cv_params": {"alpha": [1e-5], 'hidden_layer_sizes': [(5, 2), (10, 5, 2), (50, 10), (3, 2)]},
-#     "cv_params": {"alpha": [1e-5], 'hidden_layer_sizes': [(10, 5, 2)]},
-# }
+model_dict['MLP'] = {
+    "model": MLPClassifier,
+    "base_params": {'solver': 'adam', 'random_state': 0, 'max_iter': 2000},
+    "cv_params": {
+        "alpha": [0.01, 1.0],
+        'hidden_layer_sizes': [(512, 256), (256, 128), (128, 64), (64, 32), (32, 16), (16, 8), (8, 4), (4, 2), (2, 1)],
+    },
+}
 
 
 def find_best_model():
+    # Load past results
+    with open('MP2/results.pkl', "rb") as file:
+        results_df = pickle.load(file)
+
     # Cross-Validation
     n_fold = 10
-    results_df = pd.DataFrame()
+    # results_df = pd.DataFrame()
 
     start_time = time.time()
     print(f"--------- Training all models ---------")
@@ -258,6 +374,7 @@ def find_best_model():
         model_start = time.time()
         for ds_idx, each_dataset in enumerate(ds_list):
             try:
+                # Check if it already has been ran
                 ds_start = time.time()
                 dataset_name = each_dataset.name
                 print(f"\tDataset [{ds_idx+1}/{len(ds_list)}]: {dataset_name}")
@@ -267,12 +384,26 @@ def find_best_model():
 
                 # Cross_validation
                 cv_results = cross_val_score(
-                    model, X_train, y_train, cv=n_fold, base_params=base_params, cv_params=cv_params
+                    model,
+                    X_train,
+                    y_train,
+                    cv=n_fold,
+                    base_params=base_params,
+                    cv_params=cv_params,
+                    results_df=results_df,
+                    ds_name=dataset_name,
                 )
+
+                if cv_results.empty:
+                    print(f'... Model already trained')
+                    continue
 
                 best_row = cv_results.iloc[cv_results['Score'].idxmax()]
                 compute_time = time.time() - ds_start
-                print(f"\tBest Score : {best_row['Score']} [{compute_time} sec]\n")
+                print(
+                    f"\tBest CV Score : {np.round(best_row['Score']*100)}% (Acc: {np.round(best_row['Acc']*100)}) "
+                    f"[{compute_time} sec]\n"
+                )
 
                 cv_results['Model name'] = model_name
                 cv_results['Dataset'] = dataset_name
@@ -334,6 +465,39 @@ def process_results_and_predict():
     print(f'Predictions saved to {pred_save_path}')
 
 
+def create_pred_ds():
+    with open('MP2/results.pkl', "rb") as file:
+        results_df = pickle.load(file)
+
+    print(f"### Ordered Models ###")
+    print((results_df.sort_values(by=['Score'], ascending=False)).to_string())
+
+    model_idx = int(input(f"Input idx of model to use for test prediction: "))
+
+    my_model_info = results_df.iloc[model_idx]
+    print(f'Model chosen: ')
+    print(my_model_info)
+
+    print(f"Predicting test data using this model...")
+    my_model = my_model_info['Model']
+    ds = next((ds for ds in ds_list if ds.name == my_model_info['Dataset']), None)
+
+    if ds is None:
+        raise ValueError(f"Dataset {my_model_info['Dataset']} not found in `ds_list`")
+
+    y_test = my_model.predict(ds.X_test)
+    pred_df = pd.DataFrame(y_test, columns=['subreddit'])
+    pred_df.index.name = 'id'
+    pred_save_path = (
+        f'MP2/predictions/my_pred_{int((my_model_info["Score"]*100).round())}'
+        f'_{datetime.now().strftime(("%y%m%d_%H%M"))}.csv'
+    )
+    pred_df.to_csv(pred_save_path)
+    print(f'Predictions saved to {pred_save_path}')
+
+
 if __name__ == '__main__':
     find_best_model()
     process_results_and_predict()
+
+    # create_pred_ds()
