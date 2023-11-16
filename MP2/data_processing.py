@@ -7,7 +7,7 @@ from nltk import word_tokenize
 import pickle
 from functools import partial
 from typing import Literal
-import unidecode
+#import unidecode
 
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.decomposition import PCA
