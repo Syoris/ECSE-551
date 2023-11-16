@@ -67,7 +67,7 @@ class Data:
         self.train_data = pd.read_csv(
             self.train_file, header=None, encoding='utf-8', skiprows=[0], names=['body', 'label']
         )
-
+        self.train_data = self.train_data.sample(frac=1, random_state=0)
         self.test_data = pd.read_csv(self.test_file, header=None, encoding='utf-8', skiprows=[0], names=['id', 'body'])
 
     def _detect_lang(self):
@@ -102,14 +102,13 @@ class Format_data:
         words_dataset: Data,  # Loaded data
         dataset_name: str = 'NoName',
         # Text processing options
-        max_feat: int | None = 3000,  #  Max number of tokens
+        max_feat: int | None = None,  #  Max number of tokens
+        feature_type: Literal['Bin', 'Count', 'TF'] = 'Bin',
         n_gram: tuple = (1, 1),
-        use_tf_idf: bool = False,
-        binary_features: bool = True,  # If true, features are binary, false features are the frequency
         lemmatize: bool = False,
         lang_id: bool = False,  # If true, add a feature for the language (0: en, 1:fr)
         rm_accents: bool = False,  # To remove accents
-        standardize_data: bool = True,  # To remove mean and std of all data
+        standardize_data: bool = False,  # To remove mean and std of all data
         min_df: int = 1,  # Ignore terms w/ frequency lower than that
         # Feature selection options
         feat_select: Literal['PCA', 'MI', 'F_CL'] | None = None,
@@ -137,8 +136,20 @@ class Format_data:
         # Text processing
         self._max_feat = max_feat
         self._n_gram = n_gram
-        self._binary_features = binary_features
-        self._use_tf_idf = use_tf_idf
+
+        self._feature_type = feature_type
+        if feature_type == 'Bin':
+            self._binary_features = True
+            self._use_tf_idf = False
+
+        elif feature_type == 'Count':
+            self._binary_features = False
+            self._use_tf_idf = False
+
+        elif feature_type == 'TF':
+            self._binary_features = False
+            self._use_tf_idf = True
+
         self._lemmatize = lemmatize
         self._lang_id = lang_id
         self._standardize_data = standardize_data
@@ -383,9 +394,25 @@ class Format_data:
         """
         Remove mean and var of data
         """
-        scaler = preprocessing.StandardScaler().fit(self.X.toarray())
 
-        self.X = scaler.transform(self.X.toarray())
-        self.X_test = scaler.transform(self.X_test.toarray())
+        scaler = None
+        if self._standardize_data:
+            scaler = preprocessing.StandardScaler().fit(self.X.toarray())
+
+            self.X = scaler.transform(self.X.toarray())
+            self.X_test = scaler.transform(self.X_test.toarray())
 
         return scaler
+
+    def get_params(self):
+        return {
+            # 'max_feat': self._max_feat,
+            'n_gram': self._n_gram,
+            'feat_type': self._feature_type,
+            'lemmatized': self._lemmatize,
+            'lang': self._lang_id,
+            'standardized': self._standardize_data,
+            'rm_accents': self._rm_accents,
+            'feat_select': self._feat_select_opt,
+            'n_feat': self._n_feat_select,
+        }

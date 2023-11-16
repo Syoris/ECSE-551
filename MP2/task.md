@@ -20,8 +20,10 @@
 - [x] Model Validation
 
 - Improve acc
-  - For each model -> train on whole dataset and measure score
-  - Test more features and feat selection ...
+  - See the transformation perform on the text -> add col in excel with transformed data
+  - See the words and their frequency in each doc?
+  - How to deal with single letter words
+  - How to deal with numbers and dollars
 
 - [] Kaggle submission
 

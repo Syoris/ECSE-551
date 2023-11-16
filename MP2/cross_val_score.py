@@ -22,7 +22,7 @@ def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None, r
     Returns:
         pd.DataFrame: Score of each combination
     """
-    kf = KFold(n_splits=cv, shuffle=False)
+    kf = KFold(n_splits=cv, shuffle=True)
 
     results = []
 
@@ -40,13 +40,14 @@ def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None, r
         # print(f"\tParams: {each_comb}", end='')
 
         # Check if model has already been trained on this ds
-        matching_row = results_df[
-            (results_df['Model'].apply(type) == type(model))
-            & (results_df['Params'] == each_comb)
-            & (results_df['Dataset'] == ds_name)
-        ]
-        if not matching_row.empty:
-            continue
+        if not results_df.empty:
+            matching_row = results_df[
+                (results_df['Model'].apply(type) == type(model))
+                & (results_df['Params'] == each_comb)
+                & (results_df['Dataset'] == ds_name)
+            ]
+            if not matching_row.empty:
+                continue
 
         score = 0
 
@@ -62,8 +63,9 @@ def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None, r
             y_test = y[test_idx]
             try:
                 score += model.fit(X_train, y_train).score(X_test, y_test)
-            except ValueError:
+            except ValueError as err:
                 comb_ok = False
+                err_msg = err
 
         score /= cv
 
@@ -72,5 +74,8 @@ def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None, r
             acc = model.fit(X, y).score(X, y)
 
             results.append({'Params': each_comb, 'Score': score, 'Model': model, 'Acc': acc})
+
+        if not comb_ok:
+            print(f"Invalid model: {err_msg}")
 
     return pd.DataFrame(results)
