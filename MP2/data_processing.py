@@ -46,6 +46,20 @@ class LemmaTokenizer:
         return [self.wnl.lemmatize(t, pos=get_wordnet_pos(t)) for t in word_tokenize(doc) if t.isalpha()]
 
 
+def MyTokenizer(text):
+    """
+    To keep $ and pound signs
+    """
+    text = text.split()
+
+    important_symbols = ['$', '£', '€']
+    for symb in important_symbols:
+        if any(symb in string for string in text):
+            text.append(symb)
+
+    return text
+
+
 class Data:
     def __init__(self, train_file, test_file):
         # Download the csv data
@@ -113,6 +127,7 @@ class Format_data:
         # Feature selection options
         feat_select: Literal['PCA', 'MI', 'F_CL'] | None = None,
         n_feat_select: int = 1,  # Number of features to keep
+        punc_replace: str = ' ',
     ):
         self.name: str = dataset_name
         print(f"\tProcessing of: {self.name}... ", end='')
@@ -155,6 +170,7 @@ class Format_data:
         self._standardize_data = standardize_data
         self._rm_accents = rm_accents
         self._min_df = min_df
+        self._punc_rep = punc_replace
 
         # Feature selection
         self._feat_select_opt = feat_select
@@ -205,11 +221,9 @@ class Format_data:
         # Set tokenizer
         if self._lemmatize:
             tokenizer = LemmaTokenizer()
-            token_pattern = None
 
         else:
-            tokenizer = None
-            token_pattern = r'(?u)\b\w\w+\b'  # Defined as default value, to remove warnings
+            tokenizer = MyTokenizer
 
         strip_accents = 'unicode' if self._rm_accents else None
 
@@ -220,7 +234,7 @@ class Format_data:
                 ngram_range=self._n_gram,
                 binary=self._binary_features,
                 tokenizer=tokenizer,
-                token_pattern=token_pattern,
+                token_pattern=None,
                 strip_accents=strip_accents,
                 min_df=self._min_df,
             )
@@ -232,7 +246,7 @@ class Format_data:
                 ngram_range=self._n_gram,
                 binary=False,
                 tokenizer=tokenizer,
-                token_pattern=token_pattern,
+                token_pattern=None,
                 strip_accents=strip_accents,
                 min_df=self._min_df,
             )
@@ -255,8 +269,8 @@ class Format_data:
             [str]: List with all the post preprocessed
 
         """
-        train_df = self.words_dataset.train_data
-        test_df = self.words_dataset.test_data
+        train_df = self.words_dataset.train_data.copy(deep=True)
+        test_df = self.words_dataset.test_data.copy(deep=True)
 
         # Lower
         train_df['body'] = train_df['body'].str.lower()
@@ -265,14 +279,19 @@ class Format_data:
         # Punctuation
         # punctuation_list = "?:.,;!"
         # punctuation_list = string.punctuation
-        train_df['body'] = train_df['body'].str.replace('[{}]'.format(string.punctuation), '', regex=True)
-        test_df['body'] = test_df['body'].str.replace('[{}]'.format(string.punctuation), '', regex=True)
+        punc_list = (string.punctuation + '’').replace('$', '')
+        train_df['body'] = train_df['body'].str.replace('[{}]'.format(punc_list), self._punc_rep, regex=True)
+        test_df['body'] = test_df['body'].str.replace('[{}]'.format(punc_list), self._punc_rep, regex=True)
 
         return train_df['body'].to_list(), test_df['body'].to_list()
 
     # Specify stopwords
     def _get_stop_words(self):
+        custom_stop_words = ['im', 'https', 'www', 'l', 're', 'qu']
+
         my_stop_words = stopwords.words('english') + stopwords.words('french')
+
+        my_stop_words += custom_stop_words
 
         if self._rm_accents:
             my_stop_words = [unidecode.unidecode(word) for word in my_stop_words]
