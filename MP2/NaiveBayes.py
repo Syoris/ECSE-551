@@ -1,6 +1,7 @@
 from typing import Literal
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
+from sklearn.naive_bayes import ComplementNB
 import matplotlib.pyplot as plt
 import pandas as pd
 import time
@@ -37,7 +38,6 @@ class NaiveBayes:
     def __init__(
         self,
         laplace_smoothing: bool = True,
-        k_cv: int = 0,  # k-fold cross-validation
         verbose=False,  # To print execution info
     ) -> None:
         self._n_features = 0
@@ -51,8 +51,6 @@ class NaiveBayes:
         self.y = None  # y dataset for training
 
         self.laplace_smoothing = laplace_smoothing
-
-        self.k_cv = k_cv
 
         self._log_class_prior = None
         self._feat_log_proba = None
@@ -101,18 +99,8 @@ class NaiveBayes:
             print(
                 f"\t# Features: {self._n_features}, classes: {self._classes}, # Samples: {self._n_samples}"
             )
-            if self.k_cv != 0:
-                print(f"\tUsing {self.k_cv}-Fold Cross-Validation")
-            else:
-                print(f"\tNo cross validation")
 
-        # No cross-validation
-        if self.k_cv == 0:
-            self._train_model()
-
-        # k-fold cross-validation
-        else:
-            self._cross_validation()
+        self._train_model()
 
         return self
 
@@ -201,148 +189,6 @@ class NaiveBayes:
 
         return accuracy
 
-    # TODO
-    def _cross_validation(self):
-        """Perform k-fold cross validation for a given model (set of parameters)/
-
-        Args:
-            k (int): Number of folds
-            parameters (...): Model params
-
-        Returns:
-            ...: Accuracy, comp_time, model parameters
-        """
-        # 1. Determine combinations of parameters
-        results = []  # To store the result of each combination
-
-        alpha_array = np.array(self.alpha)  # Size i
-        tol_array = np.array(self.tol)  # Size j
-        reg_cst_array = np.array(self.reg_cst)  # Size k
-
-        xx, yy, zz = np.meshgrid(alpha_array, tol_array, reg_cst_array)
-
-        # Creates a 3x(i*j*k) array of all combinations.
-        # The rows are [alpha;tol;lambda] and colums correspond to a combination
-        param_combinations = np.array([xx.flatten(), yy.flatten(), zz.flatten()])
-
-        # Fold sizes
-        n_samples = X.shape[0]
-
-        # Array with each fold size
-        fold_sizes = np.full(self.k_cv, n_samples // self.k_cv, dtype=int)
-
-        # Add remainder over the first indices
-        fold_sizes[: n_samples % self.k_cv] += 1
-
-        # 2. For each combination
-        for each_param_comb in param_combinations.T:
-            alpha = each_param_comb[0]
-            tol = each_param_comb[1]
-            reg_cst = each_param_comb[2]
-
-            # For each fold
-            acc_avg = 0
-            comp_time_avg = 0
-            curr_idx = 0
-
-            for i in range(self.k_cv):
-                # Split datasets
-                start, end = curr_idx, curr_idx + fold_sizes[i]
-                curr_idx = end
-
-                X_val, y_val = X[start:end], y[start:end]
-                X_train, y_train = np.concatenate((X[:start], X[end:])), np.concatenate(
-                    (y[:start], y[end:])
-                )
-
-                # Fit model
-                (
-                    weights,
-                    n_iter,
-                    _weight_array,
-                    _cost_array,
-                    converged,
-                    comp_time,
-                ) = gradiant_descent(
-                    X_train,
-                    y_train,
-                    w_start,
-                    alpha,
-                    tol,
-                    self.max_iter,
-                    reg=self.reg,
-                    reg_cst=reg_cst,
-                    lr_type=self.lr_type,
-                    verbose=verbose,
-                )
-
-                self.weights = weights
-
-                # Accuracy
-                acc = self.accu_eval(X_val, y_val)
-
-                acc_avg += acc
-                comp_time_avg += comp_time
-
-            acc_avg /= self.k_cv
-            comp_time_avg /= self.k_cv
-
-            # Add results to dataframe
-            results.append(
-                {
-                    "Accuracy": acc_avg,
-                    "Alpha": alpha,
-                    "Tolerance": tol,
-                    "Lambda": reg_cst,
-                    "Comp time": comp_time_avg,
-                    "Converged": converged,
-                }
-            )
-
-        # 3. Print results and select best model
-        results = pd.DataFrame(results)
-
-        max_acc_rows = results[results["Accuracy"] == results["Accuracy"].max()]
-        max_acc_row = max_acc_rows.iloc[0]
-
-        acc_max = max_acc_row["Accuracy"]
-        alpha_max = max_acc_row["Alpha"]
-        tol_max = max_acc_row["Tolerance"]
-        reg_cst_max = max_acc_row["Lambda"]
-        converged = max_acc_row["Converged"]
-
-        # Train model on whole dataset with best params
-        if self._verbose:
-            print(f"Max accuracy obtained: {acc_max}")
-            print(f"\tAlpha: {alpha_max}")
-            print(f"\tTolerance: {tol_max}")
-            print(f"\tLambda: {reg_cst_max}")
-            print(f"\tConverged: {converged}")
-
-        (
-            best_weights,
-            n_iter,
-            _weight_array,
-            _cost_array,
-            converged,
-            comp_time,
-        ) = gradiant_descent(
-            X_train,
-            y_train,
-            w_start,
-            alpha_max,
-            tol_max,
-            self.max_iter,
-            reg=self.reg,
-            reg_cst=reg_cst_max,
-            lr_type=self.lr_type,
-        )
-        self.weights = best_weights
-
-        self.results = results
-
-        return results  # acc, comp time, parameters
-
     def _train_model(self):
         """Compute the theta needed to estimate the probabilities
 
@@ -375,3 +221,16 @@ class NaiveBayes:
                     theta_j_k = n_xj_yk / n_yk
 
                 self._thetas[k, j + 1] = theta_j_k  # \theta_{j, k}
+
+class WeightedComplementNB(ComplementNB):
+    def fit(self, X, y, sample_weight=None):
+        sample_weight = self.compute_weights(X, y)
+
+        super().fit(X, y, sample_weight=sample_weight)
+        ...
+
+    def compute_weights(self, X, y):
+        ...
+        weights = None
+
+        return weights
