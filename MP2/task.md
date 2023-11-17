@@ -37,7 +37,9 @@
   - https://medium.com/@monigrancharov/text-language-detection-with-python-beb49d9667b3
   - https://pypi.org/project/fasttext-langdetect/
   - [preproc text data](https://datastud.dev/posts/nlp-preprocess)
-  - Google ML tuto
+  - [Google ML tuto](https://developers.google.com/machine-learning/guides/text-classification/step-4)
+  - [SK learn example](https://scikit-learn.org/stable/auto_examples/text/plot_document_classification_20newsgroups.html#sphx-glr-auto-examples-text-plot-document-classification-20newsgroups-py)
+  - 
 
 - Text features:
     - https://www.nltk.org/api/nltk.html

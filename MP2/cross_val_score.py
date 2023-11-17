@@ -4,7 +4,9 @@ from sklearn.model_selection import KFold
 import itertools
 
 
-def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None, results_df=None, ds_name=None):
+def cross_val_score(
+    model_class, X, y, cv=5, base_params=None, cv_params=None, results_df=None, ds_name=None, sample_weight=None
+):
     """To perform K-Fold validation to find the best combination of parameters for a given model.
 
     The parameters in `base_params` are kept the same for all tests.
@@ -63,6 +65,7 @@ def cross_val_score(model_class, X, y, cv=5, base_params=None, cv_params=None, r
             y_test = y[test_idx]
             try:
                 score += model.fit(X_train, y_train).score(X_test, y_test)
+
             except ValueError as err:
                 comb_ok = False
                 err_msg = err

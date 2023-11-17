@@ -1,7 +1,6 @@
 from typing import Literal
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
-from sklearn.naive_bayes import ComplementNB
 import matplotlib.pyplot as plt
 import pandas as pd
 import time
@@ -211,13 +210,3 @@ class NaiveBayes:
                     theta_j_k = n_xj_yk / n_yk
 
                 self._thetas[k, j + 1] = theta_j_k  # \theta_{j, k}
-
-
-class WeightedComplementNB(ComplementNB):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def fit(self, X, y, sample_weight=None):
-        # sample_weight = self.compute_weights(X, y)
-
-        return super().fit(X, y, sample_weight=sample_weight)

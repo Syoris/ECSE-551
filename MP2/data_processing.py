@@ -30,6 +30,8 @@ from langid.langid import LanguageIdentifier, model
 langid.set_languages(['en', 'fr'])
 lang_identifier = LanguageIdentifier.from_modelstring(model, norm_probs=True)
 
+MY_STOP_WORDS = ['im', 'https', 'http', 'www', 'l', 're', 'qu', 'x200b']
+
 
 def get_wordnet_pos(word):
     """Map POS tag to first character lemmatize() accepts"""
@@ -127,23 +129,11 @@ class Format_data:
         # Feature selection options
         feat_select: Literal['PCA', 'MI', 'F_CL'] | None = None,
         n_feat_select: int = 1,  # Number of features to keep
+        weight_samples: bool = False,  # To compute the features weights
         punc_replace: str = ' ',
     ):
         self.name: str = dataset_name
         print(f"\tProcessing of: {self.name}... ", end='')
-
-        # file_path = f'MP2/datasets/{self.name}.pkl'
-        # try:
-        #     with open(file_path, 'rb') as f:
-        #         print(f' Loading dataset from file')
-        #         inst = pickle.load(f)
-        #
-        # except FileNotFoundError:
-        #     inst = None
-        #
-        # if inst is not None:
-        #     self.__dict__.update(inst.__dict__)
-        #     return
 
         # Attributes
         self.words_dataset: Data = words_dataset
@@ -171,6 +161,7 @@ class Format_data:
         self._rm_accents = rm_accents
         self._min_df = min_df
         self._punc_rep = punc_replace
+        self._weight_samples = weight_samples
 
         # Feature selection
         self._feat_select_opt = feat_select
@@ -202,14 +193,13 @@ class Format_data:
         self.mi_selector = None  # MI feature selection
         self._feat_selector = self._feature_selection()
 
-        self._samples_weights = None
-        self._compute_sample_weights()
+        self.sample_weight = None
+        if self._weight_samples:
+            self.sample_weight = self._compute_sample_weights()
 
-        # # Save dataset
-        # file_name = f'MP2/datasets/{self.name}.pkl'
-        # print(f" Saving to {file_name}")
-        # with open(file_name, 'wb') as file:
-        #     pickle.dump(self, file)
+        # self.print_best_features()
+
+        print(f' Done')
 
     def _vectorize_text(self):
         """
@@ -282,19 +272,22 @@ class Format_data:
         # Punctuation
         # punctuation_list = "?:.,;!"
         # punctuation_list = string.punctuation
-        punc_list = (string.punctuation + '’').replace('$', '')
+        punc_list = string.punctuation.replace('$', '')
+        punc_list += '’«»“”'
+        # Remove $ from the punctuations
         train_df['body'] = train_df['body'].str.replace('[{}]'.format(punc_list), self._punc_rep, regex=True)
+        train_df['body'] = train_df['body'].str.replace(r'[\n\\]', '', regex=True)
+
         test_df['body'] = test_df['body'].str.replace('[{}]'.format(punc_list), self._punc_rep, regex=True)
+        test_df['body'] = test_df['body'].str.replace(r'[\n\\]', '', regex=True)
 
         return train_df['body'].to_list(), test_df['body'].to_list()
 
     # Specify stopwords
     def _get_stop_words(self):
-        custom_stop_words = ['im', 'https', 'www', 'l', 're', 'qu']
-
         my_stop_words = stopwords.words('english') + stopwords.words('french')
 
-        my_stop_words += custom_stop_words
+        my_stop_words += MY_STOP_WORDS
 
         if self._rm_accents:
             my_stop_words = [unidecode.unidecode(word) for word in my_stop_words]
@@ -401,16 +394,23 @@ class Format_data:
         """
         if self._lang_id:
             # Train
-            lang_array_train = (self.words_dataset.train_data['lang'] == 'fr').astype(int).to_numpy()  # 0: en,
-            lang_sparse_train = sp.csr_matrix(lang_array_train).reshape(-1, 1)
+            en_train_array = (self.words_dataset.train_data['lang'] == 'en').astype(int).to_numpy()  # 0: en,
+            en_train_array = sp.csr_matrix(en_train_array).reshape(-1, 1)
 
-            self.X = sp.csr_matrix(sp.hstack([self.X, lang_sparse_train]))
-            self.features_name = np.append(self.features_name, 'lang')
+            fr_train_array = (self.words_dataset.train_data['lang'] == 'fr').astype(int).to_numpy()  # 0: en,
+            fr_train_array = sp.csr_matrix(fr_train_array).reshape(-1, 1)
+
+            self.X = sp.csr_matrix(sp.hstack([self.X, en_train_array, fr_train_array]))
+            self.features_name = np.append(self.features_name, ['is_en', 'is_fr'])
 
             # Test
-            lang_array_test = (self.words_dataset.test_data['lang'] == 'fr').astype(int).to_numpy()  # 0: en, 1:fr
-            lang_sparse_test = sp.csr_matrix(lang_array_test).reshape(-1, 1)
-            self.X_test = sp.csr_matrix(sp.hstack([self.X_test, lang_sparse_test]))
+            en_test_array = (self.words_dataset.test_data['lang'] == 'en').astype(int).to_numpy()  # 0: en,
+            en_test_array = sp.csr_matrix(en_test_array).reshape(-1, 1)
+
+            fr_test_array = (self.words_dataset.test_data['lang'] == 'fr').astype(int).to_numpy()  # 0: en,
+            fr_test_array = sp.csr_matrix(fr_test_array).reshape(-1, 1)
+
+            self.X_test = sp.csr_matrix(sp.hstack([self.X_test, en_test_array, fr_test_array]))
 
     def _normalize_data(self):
         """
@@ -440,66 +440,106 @@ class Format_data:
         }
 
     def _compute_sample_weights(self):
-        weights = None
-        # # TOY TESTS
-        # X_ex = np.array(
-        #     [
-        #         [1, 0, 0],
-        #         [10, 1, 0],
-        #         [5, 10, 0],
-        #         [10, 0, 0],
-        #         [15, 10, 1],
-        #     ]
-        # )
-        # Y_ex = np.array(['c1', 'c2', 'c3', 'c2', 'c3'])
-
         X = self.X
         Y = self.Y
 
-        # Analyze classes
-        classes, class_count = np.unique(Y, return_counts=True)
-        n_class = len(classes)
-        n_sample, n_features = X.shape
+        # # Analyze classes
+        # classes, class_count = np.unique(Y, return_counts=True)
+        # n_class = len(classes)
+        # n_sample, n_features = X.shape
+        #
+        # # Merge documents
+        # merged_counts = np.zeros([n_class, n_features])
+        # # merged_counts = np.array([[1, 0, 0], [20, 1, 0], [20, 20, 1]])  # Rows: classes, cols: features
+        #
+        # # for each class k
+        # for k, class_label in enumerate(classes):
+        #     c_count = class_count[k]
+        #
+        #     X_k = X[Y == class_label, :]  # Select rows of class k
+        #
+        #     merged_counts[k, :] = X_k.sum(axis=0)
+        #
+        # # Compute sample weights
+        # total_counts = int(merged_counts.sum())
+        # weights = np.zeros([n_class, n_features])
+        # for k, class_label in enumerate(classes):
+        #     n_c = n_class  # Number of classes
+        #     n_a_c = merged_counts[k, :].sum()
+        #
+        #     # for each feature j
+        #     for j in range(n_features):
+        #         n_aj = merged_counts[:, j].sum()  # Total number of count of feature j
+        #         p_aj = n_aj / total_counts  # P(a_j)
+        #
+        #         n_aj_c = merged_counts[k, j]  # Number of count of feature j in class k
+        #         p_aj_kw_c = n_aj_c / n_a_c  # Prob(a_j | c)
+        #
+        #         R_aj_c = p_aj_kw_c / p_aj
+        #
+        #         p_aj_c = n_aj_c / total_counts  # Prob documents in class and contain ai
+        #
+        #         # Compute CR_ai_c : Weight of feature a_i for class c
+        #
+        #         k_ai = (merged_counts[:, j] != 0).sum()  # Number of classes of documents that contain ai
+        #         # Greater k_ai, smaller is the dep. bw ai and class c
+        #
+        #         # p_ai_c / p_ai  Class dist. of the documents with ai. Greater it is, greater the dep. bw ai and class c
+        #
+        #         CR_aj_c = R_aj_c * p_aj_c / p_aj * np.log(2 + n_c / k_ai)
+        #         weights[k, j] = CR_aj_c
+        #
+        # # Multiply features by weights
+        # # for each class k
+        # for k, class_label in enumerate(classes):
+        #     if not isinstance(self.X, np.ndarray):
+        #         self.X = self.X.toarray()
+        #
+        #     # if not isinstance(self.X_test, np.ndarray):
+        #     #     self.X_test = self.X_test.toarray()
+        #
+        #     self.X[Y == class_label, :] = self.X[Y == class_label, :] * weights[k, :]
+        #     # self.X_test[Y == class_label, :] = self.X_test[Y == class_label, :] * weights[k, :]
 
-        # Merge documents
-        merged_counts = np.zeros([n_class, n_features])
-        # merged_counts = np.array([[1, 0, 0], [20, 1, 0], [20, 20, 1]])  # Rows: classes, cols: features
+        if not isinstance(self.X, np.ndarray):
+            self.X = self.X.toarray()
 
-        # for each class k
-        for k, class_label in enumerate(classes):
-            c_count = class_count[k]
+        if not isinstance(self.X_test, np.ndarray):
+            self.X_test = self.X_test.toarray()
 
-            X_k = X[Y == class_label, :]  # Select rows of class k
+        weights = self._feat_scores.sort_index()['Score'].to_numpy().copy()
+        # weights /= weights.sum()
 
-            merged_counts[k, :] = X_k.sum(axis=0)
-
-        # Compute sample weights
-        total_counts = int(merged_counts.sum())
-        weights = np.zeros([n_class, n_features])
-        for k, class_label in enumerate(classes):
-            n_c = n_class  # Number of classes
-            n_a_c = merged_counts[k, :].sum()
-
-            # for each feature j
-            for j in range(n_features):
-                n_aj = merged_counts[:, j].sum()  # Total number of count of feature j
-                p_aj = n_aj / total_counts  # P(a_j)
-
-                n_aj_c = merged_counts[k, j]  # Number of count of feature j in class k
-                p_aj_kw_c = n_aj_c / n_a_c  # Prob(a_j | c)
-
-                R_aj_c = p_aj_kw_c / p_aj
-
-                p_aj_c = n_aj_c / total_counts  # Prob documents in class and contain ai
-
-                # Compute CR_ai_c : Weight of feature a_i for class c
-
-                k_ai = (merged_counts[:, j] != 0).sum()  # Number of classes of documents that contain ai
-                # Greater k_ai, smaller is the dep. bw ai and class c
-
-                # p_ai_c / p_ai  Class dist. of the documents with ai. Greater it is, greater the dep. bw ai and class c
-
-                CR_aj_c = R_aj_c * p_aj_c / p_aj * np.log(2 + n_c / k_ai)
-                weights[k, j] = CR_aj_c
+        self.X = self.X * weights.reshape(1, -1)
+        self.X_test = self.X_test * weights
 
         return weights
+
+    def print_best_features(self, n_feats=10, to_excel=False):
+        """
+        To print the `n_feats` with the highest sample score for each class
+        """
+
+        feat_names = self.features_name
+        classes = np.unique(self.Y)
+
+        n_best_feat = n_feats
+
+        df_dict = {}
+        for idx, c in enumerate(classes):
+            # print(f"\n### Class: {c} ###")
+            feats_score = self.sample_weight[idx, :]
+
+            names_scores = list(zip(feat_names, feats_score))
+            feat_scores_df = pd.DataFrame(data=names_scores, columns=['Feat_names', 'Score'])
+            feat_scores_df = feat_scores_df.sort_values(by=['Score'], ascending=False).reset_index(drop=True)
+            df_dict[c] = feat_scores_df
+
+            # best_feats_idx = np.argsort(feats_score)[-n_best_feat:][::-1]
+            # best_feats = feat_names[best_feats_idx]
+
+            # print(f"\tBest scores: {best_feats}")
+
+        if to_excel:
+            combined_df = pd.concat(df_dict, axis=1)
+            combined_df.to_excel(f'MP2/datasets/{self.name}_scores.xlsx')

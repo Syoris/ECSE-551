@@ -11,7 +11,7 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 
-from NaiveBayes import NaiveBayes, WeightedComplementNB
+from NaiveBayes import NaiveBayes
 
 from cross_val_score import cross_val_score
 from data_processing import Data, Format_data
@@ -321,12 +321,14 @@ max_features = 3000
 
 ds_options = {
     'max_feat': [None],
-    'lang_id': [False],
-    'feature_type': ['Count'],  # 'TF',
-    'n_gram': [(1, 2)],
+    'lang_id': [True],  # [False, True],
+    'feature_type': ['Count', 'Bin'],  # Options: 'Bin', 'Count', 'TF'
+    'rm_accents': [True],
+    'n_gram': [(1, 1), (1, 2)],
     'lemmatize': [False],
-    'feat_select': [None],
-    'n_feat_select': [0],
+    'feat_select': ['F_CL'],  # Options: 'PCA', 'MI', 'F_CL'
+    'n_feat_select': [100, 500, 1000, 2000],
+    'weight_samples': [True],
 }
 
 print(f"Processing input data...")
@@ -348,28 +350,28 @@ model_dict = {}
 #     'base_params': {'laplace_smoothing': True, 'k_cv': 0, 'verbose': False},
 #     'cv_params': None
 # }
-
+#
 # model_dict["SK Bernoulli NB"] = {
 #     "model": BernoulliNB,
 #     "train_data": train_dataset,
 #     'base_params': {},
 #     'cv_params': None
 # }
-
+#
 # model_dict["MultinomialNB"] = {
 #     "model": MultinomialNB,
 #     'base_params': {},
 #     'cv_params': None,
 # }
-
+#
 # model_dict["ComplementNB"] = {
 #     "model": ComplementNB,
 #     'base_params': {},
 #     'cv_params': None,
 # }
 
-model_dict["WeightedComplementNB"] = {
-    "model": WeightedComplementNB,
+model_dict["ComplementNB"] = {
+    "model": ComplementNB,
     'base_params': {},
     'cv_params': None,
 }
@@ -475,6 +477,7 @@ def find_best_model():
                         cv_params=cv_params,
                         results_df=results_df,
                         ds_name=dataset_name,
+                        sample_weight=each_dataset.sample_weight,
                     )
 
                     if cv_results_i.empty:
@@ -612,6 +615,8 @@ def create_pred_ds():
     pred_df.to_csv(pred_save_path)
     print(f'Predictions saved to {pred_save_path}')
 
+    # ds.print_best_features(to_excel=True)
+
 
 def check_results():
     with open('MP2/results.pkl', "rb") as file:
@@ -666,8 +671,8 @@ def check_nb_weights(model_info):
 
 if __name__ == '__main__':
     find_best_model()
-    check_results()
-    # create_pred_ds()
+    # check_results()
+    create_pred_ds()
 
     # process_results_and_predict()
     ...

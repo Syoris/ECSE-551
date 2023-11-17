@@ -166,3 +166,8 @@ cython_debug/
 .vscode/
 MP2/predictions/*
 MP2/datasets/*
+
+~$*
+results.pkl
+results.xlsx
+scores.csv
