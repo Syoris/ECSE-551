@@ -86,9 +86,7 @@ class NaiveBayes:
         self._n_samples, self._n_features = X.shape
 
         if X.shape[0] != y.shape[0]:
-            raise ValueError(
-                f"Mismatch between the size of the input ({X.shape[0]}) and outputs ({y.shape[0]})"
-            )
+            raise ValueError(f"Mismatch between the size of the input ({X.shape[0]}) and outputs ({y.shape[0]})")
 
         # Number of class
         self._classes, self._class_count = np.unique(self.y, return_counts=True)
@@ -96,9 +94,7 @@ class NaiveBayes:
 
         if self._verbose:
             print(f"Fitting Naive Bayes model for the dataset")
-            print(
-                f"\t# Features: {self._n_features}, classes: {self._classes}, # Samples: {self._n_samples}"
-            )
+            print(f"\t# Features: {self._n_features}, classes: {self._classes}, # Samples: {self._n_samples}")
 
         self._train_model()
 
@@ -126,12 +122,8 @@ class NaiveBayes:
             raise ValueError(f"Model is not trained.")
 
         log_class_prior = np.log(self._thetas[:, 0])  # log( P(y=k) )  shape: 1xk
-        feat_log_proba = np.log(
-            self._thetas[:, 1::]
-        )  # log( P(x_j=1 | y=k) )  shape: kxm
-        feat_log_neg_proba = np.log(
-            1 - self._thetas[:, 1::]
-        )  # log( 1 - P(x_j=1 | y=k) )  shape: kxm
+        feat_log_proba = np.log(self._thetas[:, 1::])  # log( P(x_j=1 | y=k) )  shape: kxm
+        feat_log_neg_proba = np.log(1 - self._thetas[:, 1::])  # log( 1 - P(x_j=1 | y=k) )  shape: kxm
 
         n_samples = X.shape[0]
         predictions = []
@@ -145,9 +137,7 @@ class NaiveBayes:
 
         # Compute discriminants of classes for all samples
         # Σ [ x_j * (log P(x|y) - log( 1 - P(x|y) ) + log( 1-P(x|y) )]
-        self._joint_log_likelihood = X @ (
-            feat_log_proba - feat_log_neg_proba
-        ).T + feat_log_neg_proba.sum(axis=1)
+        self._joint_log_likelihood = X @ (feat_log_proba - feat_log_neg_proba).T + feat_log_neg_proba.sum(axis=1)
 
         # Add class log priors
         self._joint_log_likelihood += log_class_prior
@@ -222,15 +212,12 @@ class NaiveBayes:
 
                 self._thetas[k, j + 1] = theta_j_k  # \theta_{j, k}
 
+
 class WeightedComplementNB(ComplementNB):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def fit(self, X, y, sample_weight=None):
-        sample_weight = self.compute_weights(X, y)
+        # sample_weight = self.compute_weights(X, y)
 
-        super().fit(X, y, sample_weight=sample_weight)
-        ...
-
-    def compute_weights(self, X, y):
-        ...
-        weights = None
-
-        return weights
+        return super().fit(X, y, sample_weight=sample_weight)

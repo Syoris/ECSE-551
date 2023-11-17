@@ -132,18 +132,18 @@ class Format_data:
         self.name: str = dataset_name
         print(f"\tProcessing of: {self.name}... ", end='')
 
-        file_path = f'MP2/datasets/{self.name}.pkl'
-        try:
-            with open(file_path, 'rb') as f:
-                print(f' Loading dataset from file')
-                inst = pickle.load(f)
-
-        except FileNotFoundError:
-            inst = None
-
-        if inst is not None:
-            self.__dict__.update(inst.__dict__)
-            return
+        # file_path = f'MP2/datasets/{self.name}.pkl'
+        # try:
+        #     with open(file_path, 'rb') as f:
+        #         print(f' Loading dataset from file')
+        #         inst = pickle.load(f)
+        #
+        # except FileNotFoundError:
+        #     inst = None
+        #
+        # if inst is not None:
+        #     self.__dict__.update(inst.__dict__)
+        #     return
 
         # Attributes
         self.words_dataset: Data = words_dataset
@@ -202,11 +202,14 @@ class Format_data:
         self.mi_selector = None  # MI feature selection
         self._feat_selector = self._feature_selection()
 
-        # Save dataset
-        file_name = f'MP2/datasets/{self.name}.pkl'
-        print(f" Saving to {file_name}")
-        with open(file_name, 'wb') as file:
-            pickle.dump(self, file)
+        self._samples_weights = None
+        self._compute_sample_weights()
+
+        # # Save dataset
+        # file_name = f'MP2/datasets/{self.name}.pkl'
+        # print(f" Saving to {file_name}")
+        # with open(file_name, 'wb') as file:
+        #     pickle.dump(self, file)
 
     def _vectorize_text(self):
         """
@@ -435,3 +438,68 @@ class Format_data:
             'feat_select': self._feat_select_opt,
             'n_feat': self._n_feat_select,
         }
+
+    def _compute_sample_weights(self):
+        weights = None
+        # # TOY TESTS
+        # X_ex = np.array(
+        #     [
+        #         [1, 0, 0],
+        #         [10, 1, 0],
+        #         [5, 10, 0],
+        #         [10, 0, 0],
+        #         [15, 10, 1],
+        #     ]
+        # )
+        # Y_ex = np.array(['c1', 'c2', 'c3', 'c2', 'c3'])
+
+        X = self.X
+        Y = self.Y
+
+        # Analyze classes
+        classes, class_count = np.unique(Y, return_counts=True)
+        n_class = len(classes)
+        n_sample, n_features = X.shape
+
+        # Merge documents
+        merged_counts = np.zeros([n_class, n_features])
+        # merged_counts = np.array([[1, 0, 0], [20, 1, 0], [20, 20, 1]])  # Rows: classes, cols: features
+
+        # for each class k
+        for k, class_label in enumerate(classes):
+            c_count = class_count[k]
+
+            X_k = X[Y == class_label, :]  # Select rows of class k
+
+            merged_counts[k, :] = X_k.sum(axis=0)
+
+        # Compute sample weights
+        total_counts = int(merged_counts.sum())
+        weights = np.zeros([n_class, n_features])
+        for k, class_label in enumerate(classes):
+            n_c = n_class  # Number of classes
+            n_a_c = merged_counts[k, :].sum()
+
+            # for each feature j
+            for j in range(n_features):
+                n_aj = merged_counts[:, j].sum()  # Total number of count of feature j
+                p_aj = n_aj / total_counts  # P(a_j)
+
+                n_aj_c = merged_counts[k, j]  # Number of count of feature j in class k
+                p_aj_kw_c = n_aj_c / n_a_c  # Prob(a_j | c)
+
+                R_aj_c = p_aj_kw_c / p_aj
+
+                p_aj_c = n_aj_c / total_counts  # Prob documents in class and contain ai
+
+                # Compute CR_ai_c : Weight of feature a_i for class c
+
+                k_ai = (merged_counts[:, j] != 0).sum()  # Number of classes of documents that contain ai
+                # Greater k_ai, smaller is the dep. bw ai and class c
+
+                # p_ai_c / p_ai  Class dist. of the documents with ai. Greater it is, greater the dep. bw ai and class c
+
+                CR_aj_c = R_aj_c * p_aj_c / p_aj * np.log(2 + n_c / k_ai)
+                weights[k, j] = CR_aj_c
+
+        return weights

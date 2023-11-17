@@ -21,6 +21,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import time
 from datetime import datetime
+import itertools
 
 
 # import nltk
@@ -43,284 +44,298 @@ max_features = 3000
 # With lang (L, nL) - Feature type (B, C, TF) - Lem (Le, NLe) - N-Gram (1G, 2G, 3G) - Feat select (FX, PX, MX)
 
 # Datasets
-ds_options = [
-    # Base dataset
-    {
-        'dataset_name': 'Base',
-        'max_feat': 3000,
-        'lemmatize': False,
-        'lang_id': False,
-        'feat_select': None,
-    },
-    # # # Only with lang added
-    # # {
-    # #     'dataset_name': 'L - B - NLe - 1G',
-    # #     'lang_id': True,
-    # #     'feature_type': 'Bin',
-    # #     'lemmatize': False,
-    # #     'feat_select': None,
-    # #     'standardize_data': False,
-    # # },
-    # # # Lang + TF IDF
-    # # {
-    # #     'dataset_name': 'L - TF - NLe - 1G',
-    # #     'lang_id': True,
-    # #     'feature_type': 'TF',
-    # #     'lemmatize': False,
-    # #     'feat_select': None,
-    # # },
-    # # # Count
-    # # {
-    # #     'dataset_name': 'L - C - NLe - 1G',
-    # #     'max_feat': 3000,
-    # #     'lang_id': True,
-    # #     'feature_type': 'Count',
-    # #     'lemmatize': False,
-    # #     'feat_select': None,
-    # # },
-    # # # 2G
-    # {
-    #     'dataset_name': 'NL - B - NLe - 2G',
-    #     'lang_id': False,
-    #     'feature_type': 'Bin',
-    #     'n_gram': (1, 2),
-    #     'lemmatize': False,
-    #     'feat_select': None,
-    # },
-    # {
-    #     'dataset_name': 'NL - C - NLe - 2G',
-    #     'lang_id': False,
-    #     'feature_type': 'Count',
-    #     'n_gram': (1, 2),
-    #     'lemmatize': False,
-    #     'feat_select': None,
-    # },
-    # # # 2G and TF-IDF
-    # # {
-    # #     'dataset_name': 'L - TF - NLe - 2G',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'TF',
-    # #     'n_gram': (1, 2),
-    # #     'lemmatize': False,
-    # #     'feat_select': None,
-    # # },
-    # # # 2G - LEM
-    # # {
-    # #     'dataset_name': 'L - C - Le - 2G',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'Count',
-    # #     'n_gram': (1, 2),
-    # #     'lemmatize': True,
-    # #     'feat_select': None,
-    # # },
-    # # # 2G, LEM, TF-IDF
-    # # {
-    # #     'dataset_name': 'L - TF - Le - 2G',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'TF',
-    # #     'n_gram': (1, 2),
-    # #     'lemmatize': True,
-    # #     'feat_select': None,
-    # # },
-    # # # 2G, LEM, TF-IDF
-    # # {
-    # #     'dataset_name': 'L - TF - Le - 2G - F100',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'TF',
-    # #     'n_gram': (1, 2),
-    # #     'lemmatize': True,
-    # #     'feat_select': 'F_CL',
-    # #     'n_feat_select': 100,
-    # # },
-    # # # 2G, With Feature selections
-    # # {
-    # #     'dataset_name': 'L - B - NLe - 2G - F100',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'Bin',
-    # #     'lemmatize': False,
-    # #     'n_gram': (1, 2),
-    # #     'feat_select': 'F_CL',
-    # #     'n_feat_select': 100,
-    # # },
-    # # {
-    # #     'dataset_name': 'L - C - NLe - 2G - F250',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'Count',
-    # #     'lemmatize': False,
-    # #     'n_gram': (1, 2),
-    # #     'feat_select': 'F_CL',
-    # #     'n_feat_select': 250,
-    # # },
-    # # {
-    # #     'dataset_name': 'L - C - NLe - 2G - F500',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'Count',
-    # #     'lemmatize': False,
-    # #     'n_gram': (1, 2),
-    # #     'feat_select': 'F_CL',
-    # #     'n_feat_select': 500,
-    # # },
-    # # {
-    # #     'dataset_name': 'L - C - NLe - 2G - F1000',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'Count',
-    # #     'lemmatize': False,
-    # #     'n_gram': (1, 2),
-    # #     'feat_select': 'F_CL',
-    # #     'n_feat_select': 1000,
-    # # },
-    # # {
-    # #     'dataset_name': 'L - B - NLe - 2G',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'Bin',
-    # #     'lemmatize': False,
-    # #     'n_gram': (1, 2),
-    # #     'feat_select': None,
-    # # },
-    # {
-    #     'dataset_name': 'Big test',
-    #     'max_feat': None,
-    #     'lang_id': True,
-    #     'feature_type': 'Count',
-    #     'lemmatize': False,
-    #     'n_gram': (1, 2),
-    #     'feat_select': 'F_CL',
-    #     'n_feat_select': 2000,
-    #     'rm_accents': True,
-    # },
-    # {
-    #     'dataset_name': 'Big test- BIN',
-    #     'max_feat': None,
-    #     'lang_id': True,
-    #     'feature_type': 'Bin',
-    #     'lemmatize': False,
-    #     'n_gram': (1, 2),
-    #     'feat_select': 'F_CL',
-    #     'n_feat_select': 2000,
-    #     'rm_accents': True,
-    # },
-    # {
-    #     'dataset_name': 'Big test- BIN - NL',
-    #     'max_feat': None,
-    #     'lang_id': False,
-    #     'feature_type': 'Bin',
-    #     'lemmatize': False,
-    #     'n_gram': (1, 2),
-    #     'feat_select': 'F_CL',
-    #     'n_feat_select': 2000,
-    #     'rm_accents': True,
-    # },
-    # {
-    #     'dataset_name': 'Big test- Count - NL',
-    #     'max_feat': None,
-    #     'lang_id': False,
-    #     'feature_type': 'Count',
-    #     'lemmatize': False,
-    #     'n_gram': (1, 2),
-    #     'feat_select': 'F_CL',
-    #     'n_feat_select': 2000,
-    #     'rm_accents': True,
-    # },
-    # # {
-    # #     'dataset_name': 'L - B - NLe - 2G - F2000',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'Bin',
-    # #     'lemmatize': False,
-    # #     'n_gram': (1, 2),
-    # #     'feat_select': 'F_CL',
-    # #     'n_feat_select': 2000,
-    # # },
-    # # {
-    # #     'dataset_name': 'L - TF - NLe - 2G - F2000',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'TF',
-    # #     'lemmatize': False,
-    # #     'n_gram': (1, 2),
-    # #     'feat_select': 'F_CL',
-    # #     'n_feat_select': 2000,
-    # # },
-    # # {
-    # #     'dataset_name': 'L - C - NLe - 2G - F2000 - No Acc',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'Count',
-    # #     'lemmatize': False,
-    # #     'n_gram': (1, 2),
-    # #     'feat_select': 'F_CL',
-    # #     'n_feat_select': 2000,
-    # #     'rm_accents': True,
-    # # },
-    # # {
-    # #     'dataset_name': 'L - C - NLe - 2G - F2000 - Punc w space',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'Count',
-    # #     'lemmatize': False,
-    # #     'n_gram': (1, 2),
-    # #     'feat_select': 'F_CL',
-    # #     'n_feat_select': 2000,
-    # #     'rm_accents': False,
-    # #     'punc_replace': ' ',
-    # # },
-    # # {
-    # #     'dataset_name': 'L - C - Le - 2G - F2000',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'Count',
-    # #     'lemmatize': True,
-    # #     'n_gram': (1, 2),
-    # #     'feat_select': 'F_CL',
-    # #     'n_feat_select': 2000,
-    # #     'rm_accents': False,
-    # #     'punc_replace': '',
-    # # },
-    # # {
-    # #     'dataset_name': 'L - C - NLe - 2G - F3000',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'Count',
-    # #     'lemmatize': False,
-    # #     'n_gram': (1, 2),
-    # #     'feat_select': 'F_CL',
-    # #     'n_feat_select': 3000,
-    # # },
-    # # {
-    # #     'dataset_name': 'L - C - Le - 2G - F2000',
-    # #     'max_feat': None,
-    # #     'lang_id': True,
-    # #     'feature_type': 'Count',
-    # #     'lemmatize': True,
-    # #     'n_gram': (1, 2),
-    # #     'feat_select': 'F_CL',
-    # #     'n_feat_select': 2000,
-    # # },
-    # # Feature selection - No Lang
-    # # {
-    # #     'dataset_name': 'NL - C - NLe - 2G - F2000',
-    # #     'max_feat': None,
-    # #     'lang_id': False,
-    # #     'feature_type': 'Count',
-    # #     'lemmatize': False,
-    # #     'n_gram': (1, 2),
-    # #     'feat_select': 'F_CL',
-    # #     'n_feat_select': 2000,
-    # # },
-]
+# ds_options = [
+#     # # Base dataset
+#     # {
+#     #     'dataset_name': 'Base',
+#     #     'max_feat': 3000,
+#     #     'lemmatize': False,
+#     #     'lang_id': False,
+#     #     'feat_select': None,
+#     # },
+#     # # # Only with lang added
+#     # # {
+#     # #     'dataset_name': 'L - B - NLe - 1G',
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Bin',
+#     # #     'lemmatize': False,
+#     # #     'feat_select': None,
+#     # #     'standardize_data': False,
+#     # # },
+#     # # # Lang + TF IDF
+#     # # {
+#     # #     'dataset_name': 'L - TF - NLe - 1G',
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'TF',
+#     # #     'lemmatize': False,
+#     # #     'feat_select': None,
+#     # # },
+#     # # # Count
+#     # # {
+#     # #     'dataset_name': 'L - C - NLe - 1G',
+#     # #     'max_feat': 3000,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Count',
+#     # #     'lemmatize': False,
+#     # #     'feat_select': None,
+#     # # },
+#     # # # 2G
+#     # {
+#     #     'dataset_name': 'NL - B - NLe - 2G',
+#     #     'lang_id': False,
+#     #     'feature_type': 'Bin',
+#     #     'n_gram': (1, 2),
+#     #     'lemmatize': False,
+#     #     'feat_select': None,
+#     # },
+#     # {
+#     #     'dataset_name': 'NL - C - NLe - 2G',
+#     #     'lang_id': False,
+#     #     'feature_type': 'Count',
+#     #     'n_gram': (1, 2),
+#     #     'lemmatize': False,
+#     #     'feat_select': None,
+#     # },
+#     # # # 2G and TF-IDF
+#     # # {
+#     # #     'dataset_name': 'L - TF - NLe - 2G',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'TF',
+#     # #     'n_gram': (1, 2),
+#     # #     'lemmatize': False,
+#     # #     'feat_select': None,
+#     # # },
+#     # # # 2G - LEM
+#     # # {
+#     # #     'dataset_name': 'L - C - Le - 2G',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Count',
+#     # #     'n_gram': (1, 2),
+#     # #     'lemmatize': True,
+#     # #     'feat_select': None,
+#     # # },
+#     # # # 2G, LEM, TF-IDF
+#     # # {
+#     # #     'dataset_name': 'L - TF - Le - 2G',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'TF',
+#     # #     'n_gram': (1, 2),
+#     # #     'lemmatize': True,
+#     # #     'feat_select': None,
+#     # # },
+#     # # # 2G, LEM, TF-IDF
+#     # # {
+#     # #     'dataset_name': 'L - TF - Le - 2G - F100',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'TF',
+#     # #     'n_gram': (1, 2),
+#     # #     'lemmatize': True,
+#     # #     'feat_select': 'F_CL',
+#     # #     'n_feat_select': 100,
+#     # # },
+#     # # # 2G, With Feature selections
+#     # # {
+#     # #     'dataset_name': 'L - B - NLe - 2G - F100',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Bin',
+#     # #     'lemmatize': False,
+#     # #     'n_gram': (1, 2),
+#     # #     'feat_select': 'F_CL',
+#     # #     'n_feat_select': 100,
+#     # # },
+#     # # {
+#     # #     'dataset_name': 'L - C - NLe - 2G - F250',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Count',
+#     # #     'lemmatize': False,
+#     # #     'n_gram': (1, 2),
+#     # #     'feat_select': 'F_CL',
+#     # #     'n_feat_select': 250,
+#     # # },
+#     # # {
+#     # #     'dataset_name': 'L - C - NLe - 2G - F500',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Count',
+#     # #     'lemmatize': False,
+#     # #     'n_gram': (1, 2),
+#     # #     'feat_select': 'F_CL',
+#     # #     'n_feat_select': 500,
+#     # # },
+#     # # {
+#     # #     'dataset_name': 'L - C - NLe - 2G - F1000',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Count',
+#     # #     'lemmatize': False,
+#     # #     'n_gram': (1, 2),
+#     # #     'feat_select': 'F_CL',
+#     # #     'n_feat_select': 1000,
+#     # # },
+#     # # {
+#     # #     'dataset_name': 'L - B - NLe - 2G',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Bin',
+#     # #     'lemmatize': False,
+#     # #     'n_gram': (1, 2),
+#     # #     'feat_select': None,
+#     # # },
+#     # {
+#     #     'dataset_name': 'Big test',
+#     #     'max_feat': None,
+#     #     'lang_id': True,
+#     #     'feature_type': 'Count',
+#     #     'lemmatize': False,
+#     #     'n_gram': (1, 2),
+#     #     'feat_select': 'F_CL',
+#     #     'n_feat_select': 2000,
+#     #     'rm_accents': True,
+#     # },
+#     # {
+#     #     'dataset_name': 'Big test- BIN',
+#     #     'max_feat': None,
+#     #     'lang_id': True,
+#     #     'feature_type': 'Bin',
+#     #     'lemmatize': False,
+#     #     'n_gram': (1, 2),
+#     #     'feat_select': 'F_CL',
+#     #     'n_feat_select': 2000,
+#     #     'rm_accents': True,
+#     # },
+#     # {
+#     #     'dataset_name': 'Big test- BIN - NL',
+#     #     'max_feat': None,
+#     #     'lang_id': False,
+#     #     'feature_type': 'Bin',
+#     #     'lemmatize': False,
+#     #     'n_gram': (1, 2),
+#     #     'feat_select': 'F_CL',
+#     #     'n_feat_select': 2000,
+#     #     'rm_accents': True,
+#     # },
+#     # {
+#     #     'dataset_name': 'Big test- Count - NL',
+#     #     'max_feat': None,
+#     #     'lang_id': False,
+#     #     'feature_type': 'Count',
+#     #     'lemmatize': False,
+#     #     'n_gram': (1, 2),
+#     #     'feat_select': 'F_CL',
+#     #     'n_feat_select': 2000,
+#     #     'rm_accents': True,
+#     # },
+#     # # {
+#     # #     'dataset_name': 'L - B - NLe - 2G - F2000',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Bin',
+#     # #     'lemmatize': False,
+#     # #     'n_gram': (1, 2),
+#     # #     'feat_select': 'F_CL',
+#     # #     'n_feat_select': 2000,
+#     # # },
+#     # # {
+#     # #     'dataset_name': 'L - TF - NLe - 2G - F2000',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'TF',
+#     # #     'lemmatize': False,
+#     # #     'n_gram': (1, 2),
+#     # #     'feat_select': 'F_CL',
+#     # #     'n_feat_select': 2000,
+#     # # },
+#     # # {
+#     # #     'dataset_name': 'L - C - NLe - 2G - F2000 - No Acc',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Count',
+#     # #     'lemmatize': False,
+#     # #     'n_gram': (1, 2),
+#     # #     'feat_select': 'F_CL',
+#     # #     'n_feat_select': 2000,
+#     # #     'rm_accents': True,
+#     # # },
+#     # # {
+#     # #     'dataset_name': 'L - C - NLe - 2G - F2000 - Punc w space',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Count',
+#     # #     'lemmatize': False,
+#     # #     'n_gram': (1, 2),
+#     # #     'feat_select': 'F_CL',
+#     # #     'n_feat_select': 2000,
+#     # #     'rm_accents': False,
+#     # #     'punc_replace': ' ',
+#     # # },
+#     # # {
+#     # #     'dataset_name': 'L - C - Le - 2G - F2000',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Count',
+#     # #     'lemmatize': True,
+#     # #     'n_gram': (1, 2),
+#     # #     'feat_select': 'F_CL',
+#     # #     'n_feat_select': 2000,
+#     # #     'rm_accents': False,
+#     # #     'punc_replace': '',
+#     # # },
+#     # # {
+#     # #     'dataset_name': 'L - C - NLe - 2G - F3000',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Count',
+#     # #     'lemmatize': False,
+#     # #     'n_gram': (1, 2),
+#     # #     'feat_select': 'F_CL',
+#     # #     'n_feat_select': 3000,
+#     # # },
+#     # # {
+#     # #     'dataset_name': 'L - C - Le - 2G - F2000',
+#     # #     'max_feat': None,
+#     # #     'lang_id': True,
+#     # #     'feature_type': 'Count',
+#     # #     'lemmatize': True,
+#     # #     'n_gram': (1, 2),
+#     # #     'feat_select': 'F_CL',
+#     # #     'n_feat_select': 2000,
+#     # # },
+#     # # Feature selection - No Lang
+#     # # {
+#     # #     'dataset_name': 'NL - C - NLe - 2G - F2000',
+#     # #     'max_feat': None,
+#     # #     'lang_id': False,
+#     # #     'feature_type': 'Count',
+#     # #     'lemmatize': False,
+#     # #     'n_gram': (1, 2),
+#     # #     'feat_select': 'F_CL',
+#     # #     'n_feat_select': 2000,
+#     # # },
+# ]
+
+ds_options = {
+    'max_feat': [None],
+    'lang_id': [False],
+    'feature_type': ['Count'],  # 'TF',
+    'n_gram': [(1, 2)],
+    'lemmatize': [False],
+    'feat_select': [None],
+    'n_feat_select': [0],
+}
 
 print(f"Processing input data...")
+keys, values = zip(*ds_options.items())
+ds_options_list = [dict(zip(keys, v)) for v in itertools.product(*values)]
+
 ds_list = []
-for each_ds in ds_options:
+for idx, each_ds in enumerate(ds_options_list):
+    each_ds['dataset_name'] = f'DS {idx}'
     ds_list.append(Format_data(words_dataset, **each_ds))
 
 print(f'Done')
@@ -650,17 +665,17 @@ def check_nb_weights(model_info):
 
 
 if __name__ == '__main__':
-    # find_best_model()
-    # check_results()
+    find_best_model()
+    check_results()
     # create_pred_ds()
 
     # process_results_and_predict()
     ...
 
-    with open('MP2/results.pkl', "rb") as file:
-        results_df = pickle.load(file)
-    results_df = results_df.sort_values(by=['Score'], ascending=False)
-    check_nb_weights(results_df.iloc[1])
+    # with open('MP2/results.pkl', "rb") as file:
+    #     results_df = pickle.load(file)
+    # results_df = results_df.sort_values(by=['Score'], ascending=False)
+    # check_nb_weights(results_df.iloc[1])
 
 
 ### TEMP UTILITIES ###
