@@ -333,13 +333,13 @@ max_features = 3000
 
 ds_options = {
     'max_feat': [None],
-    'lang_id': [True],  # [False, True],
-    'feature_type': ['Count'],  # Options: 'Bin', 'Count', 'TF'
+    'lang_id': [False],  # [False, True],
+    'feature_type': ['Bin'],  # Options: 'Bin', 'Count', 'TF'
     'rm_accents': [True],
-    'n_gram': [(1, 1)],
+    'n_gram': [(1, 2)],
     'lemmatize': [False],
     'feat_select': ['F_CL'],  # Options: 'PCA', 'MI', 'F_CL', None
-    'n_feat_select': [100],
+    'n_feat_select': [2000],
     'weight_samples': [False],
 }
 
@@ -457,15 +457,16 @@ def find_ds_from_name(ds_name) -> Format_data:
 
 def find_best_model():
     # Load past results
-    try:
-        with open('MP2/results.pkl', "rb") as file:
-            results_df = pickle.load(file)
-    except FileNotFoundError:
-        results_df = pd.DataFrame()
+    # try:
+    #     with open('MP2/results.pkl', "rb") as file:
+    #         results_df = pickle.load(file)
+    # except FileNotFoundError:
+    #     results_df = pd.DataFrame()
+    results_df = pd.DataFrame()
 
     # Cross-Validation
     n_fold = 5
-    n_loops = 10
+    n_loops = 1
 
     # results_df = pd.DataFrame()
 
@@ -606,7 +607,7 @@ def process_results_and_predict():
     # pred_df = pd.DataFrame(y_test, columns=['subreddit'])
     # pred_df.index.name = 'id'
     # pred_save_path = (
-    #     f'MP2/predictions/pred_{int(best_model_score.round())}_{datetime.now().strftime(("%y%m%d_%H%M"))}.csv'
+    #     f'MP2/predictions/pred_{int(best_model_score.round())}_{datetime.now().strftime(("%Y%m%d_%H%M"))}.csv'
     # )
     # pred_df.to_csv(pred_save_path)
     # print(f'Predictions saved to {pred_save_path}')
@@ -634,7 +635,7 @@ def create_pred_ds():
     pred_df.index.name = 'id'
     pred_save_path = (
         f'MP2/predictions/my_pred_{int((my_model_info["Score"]*100).round())}'
-        f'_{datetime.now().strftime(("%y%m%d_%H%M"))}.csv'
+        f'_{datetime.now().strftime(("%Y%m%d_%H%M"))}.csv'
     )
     pred_df.to_csv(pred_save_path)
     print(f'Predictions saved to {pred_save_path}')

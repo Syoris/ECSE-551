@@ -79,9 +79,7 @@ def gradiant_descent(
         # Regularization
         reg_term = 0
         if reg == "l2":
-            reg_term = (
-                2 * reg_cst / n_data * (np.insert(w[1:], 0, 0))
-            )  # Insert 0 at beginning, No weight on bias term
+            reg_term = 2 * reg_cst / n_data * (np.insert(w[1:], 0, 0))  # Insert 0 at beginning, No weight on bias term
 
         elif reg == "l1":
             reg_term = (
@@ -130,14 +128,10 @@ def gradiant_descent(
 
     if converged:
         if verbose:
-            print(
-                f"Solution found after {i} iterations ({comp_time} ms). Optimal cost: {cost}"
-            )
+            print(f"Solution found after {i} iterations ({comp_time} ms). Optimal cost: {cost}")
     else:
         if verbose:
-            print(
-                f"Max Step reached ({i}) ({comp_time} ms) - Unable to find solution within tolerance ({tolerance})."
-            )
+            print(f"Max Step reached ({i}) ({comp_time} ms) - Unable to find solution within tolerance ({tolerance}).")
             print(f"Final cost: {cost}")
 
     return w, i, weights, costs, converged, comp_time
@@ -160,21 +154,17 @@ class LogisticRegression:
         n_iter (int): Number of iterations needed for fitting. 0 if not fitted.
 
         X (ndarray): Training inputs (nxm)
-        y (ndarray): Training output (nx1)
+        Y (ndarray): Training output (nx1)
     """
 
     def __init__(
         self,
-        alpha: list
-        | float = 0.01,  # Gradiant descent learning rate. List of values for CV.
-        learning_rate_type: Literal[
-            "normal", "decaying"
-        ] = "normal",  # Type of learning rate
+        alpha: list | float = 0.01,  # Gradiant descent learning rate. List of values for CV.
+        learning_rate_type: Literal["normal", "decaying"] = "normal",  # Type of learning rate
         tol: list | float = 1e-4,  # Stopping criteria tolerance. List of values for CV.
         max_iter: int = 100,  # Max number of iteration of the solver
         reg: Literal["l2"] | None = "l2",  # Form of regularization
-        reg_cst: list
-        | float = 1.0,  # Regularization constant. Higher means stronger reg. List of values for CV.
+        reg_cst: list | float = 1.0,  # Regularization constant. Higher means stronger reg. List of values for CV.
         k_cv: int = 0,  # k-fold cross-validation
     ) -> None:
         self.reg = reg
@@ -223,9 +213,7 @@ class LogisticRegression:
         self.n_features = X.shape[1]
 
         if X.shape[0] != y.shape[0]:
-            raise ValueError(
-                f"Mismatch between the size of the input ({X.shape[0]}) and outputs ({y.shape[0]})"
-            )
+            raise ValueError(f"Mismatch between the size of the input ({X.shape[0]}) and outputs ({y.shape[0]})")
 
         # No cross-validation
         if self.k_cv == 0:
@@ -319,9 +307,7 @@ class LogisticRegression:
                 plot_range = 5
                 n_points = 100
                 w_0 = np.linspace(self.weights[0] - 3, self.weights[0] + 1, n_points)
-                w_1 = np.linspace(
-                    self.weights[1] - plot_range, self.weights[1] + 1, n_points
-                )
+                w_1 = np.linspace(self.weights[1] - plot_range, self.weights[1] + 1, n_points)
                 w_00, w_11 = np.meshgrid(w_0, w_1)
                 w_grid = np.array([w_00.flatten(), w_11.flatten()])
 
@@ -460,9 +446,7 @@ class LogisticRegression:
                 curr_idx = end
 
                 X_val, y_val = X[start:end], y[start:end]
-                X_train, y_train = np.concatenate((X[:start], X[end:])), np.concatenate(
-                    (y[:start], y[end:])
-                )
+                X_train, y_train = np.concatenate((X[:start], X[end:])), np.concatenate((y[:start], y[end:]))
 
                 # Fit model
                 (

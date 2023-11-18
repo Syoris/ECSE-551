@@ -339,7 +339,7 @@ class Format_data:
                 discrete_feat = True
                 X = self.X
 
-            # MI_info = mutual_info_classif(X=self.X.toarray(), y=self.Y, discrete_features=discrete_features, random_state=0)
+            # MI_info = mutual_info_classif(X=self.X.toarray(), Y=self.Y, discrete_features=discrete_features, random_state=0)
             my_score = partial(mutual_info_classif, random_state=0, discrete_features=discrete_feat)
             mi_selector = SelectKBest(my_score, k=self._n_feat_select)
             self.X = mi_selector.fit_transform(X, self.Y)
@@ -364,7 +364,7 @@ class Format_data:
             #     discrete_feat = True
             #     X = self.X
 
-            # MI_info = mutual_info_classif(X=self.X.toarray(), y=self.Y, discrete_features=discrete_features, random_state=0)
+            # MI_info = mutual_info_classif(X=self.X.toarray(), Y=self.Y, discrete_features=discrete_features, random_state=0)
             feat_selector = SelectKBest(f_classif, k=self._n_feat_select)
             X_trans = feat_selector.fit_transform(self.X, self.Y)
 

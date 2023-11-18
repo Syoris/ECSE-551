@@ -15,16 +15,16 @@ from sklearn.feature_extraction.text import CountVectorizer
 # --- Datasets ---
 # Iris dataset
 # test_size = 0.2
-# X, y = load_iris(return_X_y=True)
-# print('iris', X.shape, y.shape)
-# print("number of classes is ", len(np.unique(y)))
-# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+# X, Y = load_iris(return_X_y=True)
+# print('iris', X.shape, Y.shape)
+# print("number of classes is ", len(np.unique(Y)))
+# X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=0)
 # print(f"Trainin dataset size: {X_train.shape}")
 
 # Binary Features toy dataset
 rng = np.random.RandomState(2)
 X = rng.randint(2, size=(9, 5))
-# y = np.array([1, 2, 3, 3, 1, 2, 3, 1, 2])
+# Y = np.array([1, 2, 3, 3, 1, 2, 3, 1, 2])
 y = np.array(["a", "b", "c", "c", "a", "b", "c", "a", "b"])
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
 

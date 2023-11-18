@@ -47,7 +47,7 @@ class NaiveBayes:
         self._n_samples = 0
 
         self.X = None  # X dataset for training
-        self.y = None  # y dataset for training
+        self.y = None  # Y dataset for training
 
         self.laplace_smoothing = laplace_smoothing
 
@@ -120,9 +120,9 @@ class NaiveBayes:
         if self._thetas is None:
             raise ValueError(f"Model is not trained.")
 
-        log_class_prior = np.log(self._thetas[:, 0])  # log( P(y=k) )  shape: 1xk
-        feat_log_proba = np.log(self._thetas[:, 1::])  # log( P(x_j=1 | y=k) )  shape: kxm
-        feat_log_neg_proba = np.log(1 - self._thetas[:, 1::])  # log( 1 - P(x_j=1 | y=k) )  shape: kxm
+        log_class_prior = np.log(self._thetas[:, 0])  # log( P(Y=k) )  shape: 1xk
+        feat_log_proba = np.log(self._thetas[:, 1::])  # log( P(x_j=1 | Y=k) )  shape: kxm
+        feat_log_neg_proba = np.log(1 - self._thetas[:, 1::])  # log( 1 - P(x_j=1 | Y=k) )  shape: kxm
 
         n_samples = X.shape[0]
         predictions = []
@@ -135,7 +135,7 @@ class NaiveBayes:
         # jll += log_class_prior + feat_log_neg_proba.sum(axis=1)
 
         # Compute discriminants of classes for all samples
-        # Σ [ x_j * (log P(x|y) - log( 1 - P(x|y) ) + log( 1-P(x|y) )]
+        # Σ [ x_j * (log P(x|Y) - log( 1 - P(x|Y) ) + log( 1-P(x|Y) )]
         self._joint_log_likelihood = X @ (feat_log_proba - feat_log_neg_proba).T + feat_log_neg_proba.sum(axis=1)
 
         # Add class log priors
@@ -182,8 +182,8 @@ class NaiveBayes:
         """Compute the theta needed to estimate the probabilities
 
         For each class:
-            $$ \theta_k = P(y=k) = (# samples where y=k) / (# samples) $$
-            $$ \theta_{j, k} = P(x_j=1 | y=k) = (# samples where x_j=1 and y=k) / (# samples where y=k)  $$
+            $$ \theta_k = P(Y=k) = (# samples where Y=k) / (# samples) $$
+            $$ \theta_{j, k} = P(x_j=1 | Y=k) = (# samples where x_j=1 and Y=k) / (# samples where Y=k)  $$
 
         Stores the values in a np.array of shape k x (1 + m)
             -> \theta_{k} = thetas[k, 0], k=0, ... n_class  (prior of class k)
@@ -192,17 +192,17 @@ class NaiveBayes:
         self._thetas = np.zeros([self._n_class, self._n_features + 1])
 
         for k, class_label in enumerate(self._classes):
-            n_yk = self._class_count[k]  # n samples where y=k
+            n_yk = self._class_count[k]  # n samples where Y=k
 
             X_k = self.X[self.y == class_label, :]
 
-            theta_k = n_yk / self._n_samples  # P(y=k), prior for class k
+            theta_k = n_yk / self._n_samples  # P(Y=k), prior for class k
             self._thetas[k, 0] = theta_k
 
             for j in range(self._n_features):
                 samples_j_k = X_k[:, j] == 1  # Array with True where X_j is 1
 
-                n_xj_yk = samples_j_k.sum()  # n samples where y=k and x=x_j
+                n_xj_yk = samples_j_k.sum()  # n samples where Y=k and x=x_j
 
                 if self.laplace_smoothing:
                     theta_j_k = (n_xj_yk + 1) / (n_yk + 2)
@@ -219,19 +219,27 @@ class MyMultinomialNB:
         self.n_classes_ = 0
         self.classes_ = []
         self.jll_ = None
+        self.weights_ = None
 
-    def fit(self, X, y):
+    def fit(self, X, Y):
         num_samples, num_features = X.shape
 
         # Calculate class probabilities
-        self.classes_, self.n_classes_ = np.unique(y, return_counts=True)
+        self.classes_, self.n_classes_ = np.unique(Y, return_counts=True)
         self.class_probabilities = dict(zip(self.classes_, self.n_classes_ / num_samples))
 
+        self.weights_ = self.compute_weights_(X, Y)
+
         # Calculate word probabilities for each class
-        for cls in self.classes_:
-            cls_indices = y == cls
-            class_word_count = X[cls_indices].sum(axis=0)  # Total each feature appears in for class k
-            total_word_count = X[cls_indices].sum() + num_features  # Laplace smoothing
+        for k, cls in enumerate(self.classes_):
+            cls_indices = Y == cls
+            # cls_weight = self.weights_[k, :]
+            X_k = X[cls_indices] if isinstance(X[cls_indices], np.ndarray) else X[cls_indices].toarray()
+
+            X_k_freq = X_k  # * cls_weight  # shape: n_sample x m
+
+            class_word_count = X_k_freq.sum(axis=0)  # Total each feature appears in for class k
+            total_word_count = X_k_freq.sum() + num_features  # Laplace smoothing
             self.word_probabilities[cls] = (class_word_count + 1) / total_word_count
 
         return self
@@ -245,17 +253,73 @@ class MyMultinomialNB:
             jll_i = np.zeros(num_classes)
             X_i = X[i] if isinstance(X[i], np.ndarray) else X[i].toarray()
             X_i = X_i.reshape(1, -1)
+
             for k, (cls, cls_prob) in enumerate(self.class_probabilities.items()):
+                X_i_c = X_i * self.weights_[cls]  # Weighted word freq for class k, shape 1xm
+
                 word_prob = self.word_probabilities[cls].reshape(1, -1)
 
-                jll_i[k] = np.log(cls_prob) + np.dot(X_i, np.log(word_prob).T)
+                jll_i[k] = np.log(cls_prob) + np.dot(X_i_c, np.log(word_prob).T)
 
             self.jll_[i, :] = jll_i
 
         indices = np.argmax(self.jll_, axis=1)
         return self.classes_[indices]
 
-    def score(self, X, y):
+    def score(self, X, Y):
         predictions = self.predict(X)
-        accuracy = np.mean(predictions == y)
+        accuracy = np.mean(predictions == Y)
         return accuracy
+
+    def compute_weights_(self, X, Y):
+        # Analyze classes
+        classes, class_count = self.classes_, self.n_classes_
+        n_class = len(classes)
+        n_sample, n_features = X.shape
+
+        # Merge documents
+        merged_counts = np.zeros([n_class, n_features])
+        # merged_counts = np.array([[1, 0, 0], [20, 1, 0], [20, 20, 1]])  # Rows: classes, cols: features
+
+        # for each class k
+        for k, class_label in enumerate(classes):
+            # c_count = class_count[k]
+            X_k = X[Y == class_label, :]  # Select rows of class k
+            merged_counts[k, :] = X_k.sum(axis=0)
+
+        # Compute sample weights
+        total_counts = int(merged_counts.sum())
+        weights = {}
+        n_c = n_class  # Number of classes
+        for k, class_label in enumerate(classes):
+            cls_weights = np.zeros([n_features])
+            n_a_c = merged_counts[k, :].sum()  # Total num of words in class k
+
+            # for each feature j
+            for j in range(n_features):
+                n_aj = merged_counts[:, j].sum()  # Total number of count of feature j
+                p_aj = (n_aj + 1) / total_counts  # P(a_j)
+
+                n_aj_c = merged_counts[k, j]  # Number of count of feature j in class k
+                p_aj_kw_c = n_aj_c / n_a_c  # Prob(a_j | c)
+
+                R_aj_c = p_aj_kw_c / p_aj
+
+                p_aj_c = n_aj_c / total_counts  # Prob documents in class and contain ai
+
+                # Compute CR_ai_c : Weight of feature a_i for class c
+
+                k_ai = (merged_counts[:, j] != 0).sum()  # Number of classes of documents that contain ai
+                # Greater k_ai, smaller is the dep. bw ai and class c
+
+                # p_ai_c / p_ai  Class dist. of the documents with ai. Greater it is, greater the dep. bw ai and class c
+
+                CR_aj_c = R_aj_c * p_aj_c / p_aj * np.log(2 + (n_c + 1) / (k_ai + 1))
+
+                weights[k, j] = CR_aj_c
+                # cls_weights[j] = R_aj_c
+            # cls_weights = np.ones([n_features])
+
+            weights[class_label] = cls_weights
+
+        return weights
