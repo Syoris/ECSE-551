@@ -210,3 +210,52 @@ class NaiveBayes:
                     theta_j_k = n_xj_yk / n_yk
 
                 self._thetas[k, j + 1] = theta_j_k  # \theta_{j, k}
+
+
+class MyMultinomialNB:
+    def __init__(self):
+        self.class_probabilities = {}
+        self.word_probabilities = {}
+        self.n_classes_ = 0
+        self.classes_ = []
+        self.jll_ = None
+
+    def fit(self, X, y):
+        num_samples, num_features = X.shape
+
+        # Calculate class probabilities
+        self.classes_, self.n_classes_ = np.unique(y, return_counts=True)
+        self.class_probabilities = dict(zip(self.classes_, self.n_classes_ / num_samples))
+
+        # Calculate word probabilities for each class
+        for cls in self.classes_:
+            cls_indices = y == cls
+            class_word_count = X[cls_indices].sum(axis=0)  # Total each feature appears in for class k
+            total_word_count = X[cls_indices].sum() + num_features  # Laplace smoothing
+            self.word_probabilities[cls] = (class_word_count + 1) / total_word_count
+
+        return self
+
+    def predict(self, X):
+        n_samples, n_features = X.shape
+        num_classes = len(self.classes_)
+        self.jll_ = np.zeros([n_samples, num_classes])
+
+        for i in range(X.shape[0]):
+            jll_i = np.zeros(num_classes)
+            X_i = X[i] if isinstance(X[i], np.ndarray) else X[i].toarray()
+            X_i = X_i.reshape(1, -1)
+            for k, (cls, cls_prob) in enumerate(self.class_probabilities.items()):
+                word_prob = self.word_probabilities[cls].reshape(1, -1)
+
+                jll_i[k] = np.log(cls_prob) + np.dot(X_i, np.log(word_prob).T)
+
+            self.jll_[i, :] = jll_i
+
+        indices = np.argmax(self.jll_, axis=1)
+        return self.classes_[indices]
+
+    def score(self, X, y):
+        predictions = self.predict(X)
+        accuracy = np.mean(predictions == y)
+        return accuracy

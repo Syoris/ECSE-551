@@ -11,7 +11,7 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 
-from NaiveBayes import NaiveBayes
+from NaiveBayes import NaiveBayes, MyMultinomialNB
 
 from cross_val_score import cross_val_score
 from data_processing import Data, Format_data
@@ -319,16 +319,28 @@ max_features = 3000
 #     # # },
 # ]
 
+# ds_options = {
+#     'max_feat': [None],
+#     'lang_id': [True],  # [False, True],
+#     'feature_type': ['Count', 'Bin'],  # Options: 'Bin', 'Count', 'TF'
+#     'rm_accents': [True],
+#     'n_gram': [(1, 1), (1, 2)],
+#     'lemmatize': [False],
+#     'feat_select': ['F_CL'],  # Options: 'PCA', 'MI', 'F_CL'
+#     'n_feat_select': [100, 500, 1000, 2000],
+#     'weight_samples': [True],
+# }
+
 ds_options = {
     'max_feat': [None],
     'lang_id': [True],  # [False, True],
-    'feature_type': ['Count', 'Bin'],  # Options: 'Bin', 'Count', 'TF'
+    'feature_type': ['Count'],  # Options: 'Bin', 'Count', 'TF'
     'rm_accents': [True],
-    'n_gram': [(1, 1), (1, 2)],
+    'n_gram': [(1, 1)],
     'lemmatize': [False],
-    'feat_select': ['F_CL'],  # Options: 'PCA', 'MI', 'F_CL'
-    'n_feat_select': [100, 500, 1000, 2000],
-    'weight_samples': [True],
+    'feat_select': ['F_CL'],  # Options: 'PCA', 'MI', 'F_CL', None
+    'n_feat_select': [100],
+    'weight_samples': [False],
 }
 
 print(f"Processing input data...")
@@ -370,8 +382,20 @@ model_dict = {}
 #     'cv_params': None,
 # }
 
-model_dict["ComplementNB"] = {
-    "model": ComplementNB,
+# model_dict["ComplementNB"] = {
+#     "model": ComplementNB,
+#     'base_params': {},
+#     'cv_params': None,
+# }
+
+model_dict["MultinomialNB"] = {
+    "model": MultinomialNB,
+    'base_params': {},
+    'cv_params': None,
+}
+
+model_dict["MyMultinomialNB"] = {
+    "model": MyMultinomialNB,
     'base_params': {},
     'cv_params': None,
 }
@@ -544,8 +568,8 @@ def find_best_model():
 
     with open('MP2/results.pkl', "wb") as file:
         pickle.dump(results_df, file)
-
-    results_df.to_excel('MP2/results.xlsx')
+    #
+    # results_df.to_excel('MP2/results.xlsx')
 
 
 def process_results_and_predict():
