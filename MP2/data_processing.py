@@ -437,12 +437,13 @@ class Format_data:
             'rm_accents': self._rm_accents,
             'feat_select': self._feat_select_opt,
             'n_feat': self._n_feat_select,
+            'weight_samples': self._weight_samples,
         }
 
     def _compute_sample_weights(self):
-        X = self.X
-        Y = self.Y
-
+        # X = self.X
+        # Y = self.Y
+        #
         # # Analyze classes
         # classes, class_count = np.unique(Y, return_counts=True)
         # n_class = len(classes)
@@ -508,14 +509,14 @@ class Format_data:
             self.X_test = self.X_test.toarray()
 
         weights = self._feat_scores.sort_index()['Score'].to_numpy().copy()
-        # weights /= weights.sum()
+        weights /= weights.sum()
 
         self.X = self.X * weights.reshape(1, -1)
-        self.X_test = self.X_test * weights
+        self.X_test = self.X_test * weights.reshape(1, -1)
 
         return weights
 
-    def print_best_features(self, n_feats=10, to_excel=False):
+    def print_best_features(self, n_feats=20, to_excel=False):
         """
         To print the `n_feats` with the highest sample score for each class
         """
@@ -523,11 +524,8 @@ class Format_data:
         feat_names = self.features_name
         classes = np.unique(self.Y)
 
-        n_best_feat = n_feats
-
         df_dict = {}
         for idx, c in enumerate(classes):
-            # print(f"\n### Class: {c} ###")
             feats_score = self.sample_weight[idx, :]
 
             names_scores = list(zip(feat_names, feats_score))
@@ -535,11 +533,8 @@ class Format_data:
             feat_scores_df = feat_scores_df.sort_values(by=['Score'], ascending=False).reset_index(drop=True)
             df_dict[c] = feat_scores_df
 
-            # best_feats_idx = np.argsort(feats_score)[-n_best_feat:][::-1]
-            # best_feats = feat_names[best_feats_idx]
-
-            # print(f"\tBest scores: {best_feats}")
+        combined_df = pd.concat(df_dict, axis=1)
+        print(combined_df.head(n_feats).to_string())
 
         if to_excel:
-            combined_df = pd.concat(df_dict, axis=1)
             combined_df.to_excel(f'MP2/datasets/{self.name}_scores.xlsx')
