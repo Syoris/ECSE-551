@@ -19,16 +19,12 @@
 
 - [x] Model Validation
 
-- Improve acc
-  - See the transformation perform on the text -> add col in excel with transformed data
-  - See the words and their frequency in each doc?
-  - How to deal with single letter words
-  - How to deal with numbers and dollars
 
-- [] Kaggle submission
-
-## Report
-...
+## Sunday
+ - [ ] Results in report
+ - [ ] Code to output all results
+   - [ ] Cleanup
+   - [ ] Best nb features
 
 ## Resources
 - [Project task, MyCourse](https://mycourses2.mcgill.ca/d2l/lms/dropbox/user/folder_submit_files.d2l?db=277315&grpid=695015&isprv=0&bp=0&ou=662366)

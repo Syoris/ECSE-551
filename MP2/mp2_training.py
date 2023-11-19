@@ -4,7 +4,7 @@ To find the best model and their parameter combination using K-Fold validation
 import pickle
 
 from sklearn.naive_bayes import BernoulliNB, GaussianNB, MultinomialNB, ComplementNB
-from sklearn.svm import LinearSVC
+from sklearn.svm import SVC
 from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import AdaBoostClassifier
@@ -42,29 +42,29 @@ print(f'Done')
 preds = pd.read_excel('MP2/pred_analysis.xlsx', sheet_name='test', usecols="A,C").set_index('id')  # noqa
 preds.columns = ['True label']
 
+ds_options = {
+    'max_feat': [None],
+    'lang_id': [False],  # [False, True],
+    'feature_type': ['Bin'],  # Options: 'Bin', 'Count', 'TF'
+    'rm_accents': [True],
+    'n_gram': [(1, 1)],
+    'lemmatize': [False],
+    'feat_select': ['F_CL'],  # Options: 'PCA', 'MI', 'F_CL', None
+    'n_feat_select': [1000],
+    'weight_samples': [True],
+}
+
 # ds_options = {
 #     'max_feat': [None],
 #     'lang_id': [True, False],  # [False, True],
-#     'feature_type': ['Count'],  # Options: 'Bin', 'Count', 'TF'
+#     'feature_type': ['Count', 'Bin'],  # Options: 'Bin', 'Count', 'TF'
 #     'rm_accents': [True],
-#     'n_gram': [(1, 1)],
+#     'n_gram': [(1, 1), (1, 2), (1, 3), (1, 4)],
 #     'lemmatize': [False],
 #     'feat_select': ['F_CL'],  # Options: 'PCA', 'MI', 'F_CL', None
-#     'n_feat_select': [1000],
-#     'weight_samples': [False, True],
+#     'n_feat_select': [1000, 2000, 3000],
+#     'weight_samples': [False],
 # }
-#
-ds_options = {
-    'max_feat': [None],
-    'lang_id': [True, False],  # [False, True],
-    'feature_type': ['Count', 'Bin'],  # Options: 'Bin', 'Count', 'TF'
-    'rm_accents': [True],
-    'n_gram': [(1, 1), (1, 2), (1, 3), (1, 4)],
-    'lemmatize': [False, True],
-    'feat_select': ['F_CL'],  # Options: 'PCA', 'MI', 'F_CL', None
-    'n_feat_select': [1000, 2000, 3000],
-    'weight_samples': [False],
-}
 
 print(f"Processing input data...")
 keys, values = zip(*ds_options.items())
@@ -86,26 +86,32 @@ model_dict["My NB"] = {
     'cv_params': None,
 }
 
+model_dict["MyMultinomialNB"] = {
+    "model": MyMultinomialNB,
+    'base_params': {},
+    'cv_params': None,
+}
+
 model_dict["MultinomialNB"] = {
     "model": MultinomialNB,
     'base_params': {},
     'cv_params': None,
 }
+#
+# model_dict["ComplementNB"] = {
+#     "model": ComplementNB,
+#     'base_params': {},
+#     'cv_params': None,
+# }
+#
+# model_dict["SVC"] = {
+#     "model": LinearSVC,
+#     "base_params": {"random_state": 0},
+#     "cv_params": {"C": [0.001, 0.05, 0.1, 1]},
+# }
 
-model_dict["ComplementNB"] = {
-    "model": ComplementNB,
-    'base_params': {},
-    'cv_params': None,
-}
 
-model_dict["SVC"] = {
-    "model": LinearSVC,
-    "base_params": {"random_state": 0},
-    "cv_params": {"C": [0.001, 0.05, 0.1, 1]},
-}
-
-
-def find_ds_from_name(ds_name) -> Format_data:
+def find_ds_from_name(ds_name, ds_list) -> Format_data:
     ds = next((ds for ds in ds_list if ds.name == ds_name), None)
 
     if ds is None:
@@ -114,7 +120,7 @@ def find_ds_from_name(ds_name) -> Format_data:
     return ds
 
 
-def find_best_model():
+def compute_models_cv_acc(model_dict, ds_list):
     # Load past results
     # try:
     #     with open('MP2/results.pkl', "rb") as file:
@@ -219,6 +225,8 @@ def find_best_model():
     with open('MP2/results.pkl', "wb") as file:
         pickle.dump(results_df, file)
 
+    return results_df
+
 
 def create_pred_ds():
     with open('MP2/results.pkl', "rb") as file:
@@ -228,7 +236,7 @@ def create_pred_ds():
 
     for row_idx, each_model in results_df.iterrows():
         model = each_model['Model']
-        ds = find_ds_from_name(each_model['Dataset'])
+        ds = find_ds_from_name(each_model['Dataset'], ds_list)
         test_acc = model.score(ds.X_test, preds['True label'])
 
         results_df.at[row_idx, 'Test Acc'] = test_acc
@@ -247,7 +255,7 @@ def create_pred_ds():
 
     print(f"Predicting test data using this model...")
     my_model = my_model_info['Model']
-    ds = find_ds_from_name(my_model_info['Dataset'])
+    ds = find_ds_from_name(my_model_info['Dataset'], ds_list)
 
     y_test = my_model.predict(ds.X_test)
     pred_df = pd.DataFrame(y_test, columns=['subreddit'])
@@ -264,7 +272,7 @@ def create_pred_ds():
 
 def check_nb_weights(model_info):
     model = model_info['Model']
-    ds = find_ds_from_name(model_info['Dataset'])
+    ds = find_ds_from_name(model_info['Dataset'], ds_list)
     if not isinstance(model, ComplementNB):
         print(f"Model isnt Naive Bayes")
         return
@@ -301,7 +309,7 @@ def check_nb_weights(model_info):
 
 
 if __name__ == '__main__':
-    find_best_model()
+    results_df = compute_models_cv_acc(model_dict, ds_list)
     create_pred_ds()
 
 

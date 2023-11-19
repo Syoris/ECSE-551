@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
 import itertools
+from NaiveBayes import MyMultinomialNB
 
 
 def cross_val_score(
@@ -64,7 +65,10 @@ def cross_val_score(
             y_train = y[train_idx]
             y_test = y[test_idx]
             try:
-                score += model.fit(X_train, y_train).score(X_test, y_test)
+                if sample_weight is not None and isinstance(model, MyMultinomialNB):
+                    score += model.fit(X_train, y_train, sample_weight=sample_weight).score(X_test, y_test)
+                else:
+                    score += model.fit(X_train, y_train).score(X_test, y_test)
 
             except ValueError as err:
                 comb_ok = False
@@ -74,7 +78,10 @@ def cross_val_score(
 
         if comb_ok:
             # Train on whole ds
-            acc = model.fit(X, y).score(X, y)
+            if sample_weight is not None and isinstance(model, MyMultinomialNB):
+                acc = model.fit(X, y, sample_weight=sample_weight).score(X, y)
+            else:
+                acc = model.fit(X, y).score(X, y)
 
             results.append({'Params': each_comb, 'Score': score, 'Model': model, 'Acc': acc})
 

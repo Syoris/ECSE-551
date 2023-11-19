@@ -96,6 +96,7 @@ class NaiveBayes:
             print(f"\t# Features: {self._n_features}, classes: {self._classes}, # Samples: {self._n_samples}")
 
         self._train_model()
+        self.weights_ = self.compute_weights_(X, y)
 
         return self
 
@@ -121,11 +122,11 @@ class NaiveBayes:
             raise ValueError(f"Model is not trained.")
 
         log_class_prior = np.log(self._thetas[:, 0])  # log( P(Y=k) )  shape: 1xk
-        feat_log_proba = np.log(self._thetas[:, 1::])  # log( P(x_j=1 | Y=k) )  shape: kxm
+        feat_log_proba = self.weights_ * np.log(self._thetas[:, 1::])  # log( P(x_j=1 | Y=k) )  shape: kxm
         feat_log_neg_proba = np.log(1 - self._thetas[:, 1::])  # log( 1 - P(x_j=1 | Y=k) )  shape: kxm
 
         n_samples = X.shape[0]
-        predictions = []
+
         self._joint_log_likelihood = np.zeros((n_samples, self._n_class))
 
         # # SK
@@ -211,6 +212,63 @@ class NaiveBayes:
 
                 self._thetas[k, j + 1] = theta_j_k  # \theta_{j, k}
 
+    def compute_weights_(self, X, Y):
+        # Analyze classes
+        n_class = len(self._classes)
+        n_sample, n_features = X.shape
+
+        # Merge documents
+        merged_counts = np.zeros([n_class, n_features])
+
+        # for each class k
+        for k, class_label in enumerate(self._classes):
+            # c_count = class_count[k]
+            X_k = X[Y == class_label, :]  # Select rows of class k
+            merged_counts[k, :] = X_k.sum(axis=0)
+
+        # Compute sample weights
+        total_counts = int(merged_counts.sum())
+
+        # --- Basic weights ---
+        weights = merged_counts
+        weights /= n_sample
+
+        # --- CR Weights ---
+        # weights = np.zeros([n_class, n_features])
+        # n_c = n_class  # Number of classes
+        # for k, class_label in enumerate(self._classes):
+        #
+        # CR
+        # n_a_c = merged_counts[k, :].sum()  # Total num of words in class k
+        # for each feature j
+        # for j in range(n_features):
+        #     n_aj = merged_counts[:, j].sum()  # Total number of count of feature j
+        #     p_aj = (n_aj + 1) / total_counts  # P(a_j)
+        #
+        #     n_aj_c = merged_counts[k, j]  # Number of count of feature j in class k
+        #     p_aj_kw_c = n_aj_c / n_a_c  # Prob(a_j | c)
+        #
+        #     R_aj_c = p_aj_kw_c / p_aj
+        #
+        #     p_aj_c = n_aj_c / total_counts  # Prob documents in class and contain ai
+        #
+        #     # Compute CR_ai_c : Weight of feature a_i for class c
+        #
+        #     k_ai = (merged_counts[:, j] != 0).sum()  # Number of classes of documents that contain ai
+        #     # Greater k_ai, smaller is the dep. bw ai and class c
+        #
+        #     # p_ai_c / p_ai  Class dist. of the documents with ai. Greater it is, greater the dep. bw ai and class c
+        #
+        #     CR_aj_c = R_aj_c * p_aj_c / p_aj * np.log(2 + (n_c + 1) / (k_ai + 1))
+        #
+        #     weights[k, j] = CR_aj_c
+        #     # cls_weights[j] = CR_aj_c
+
+        # cls_weights = np.ones([n_features])
+        # weights[class_label] = cls_weights
+
+        return weights
+
 
 class MyMultinomialNB:
     def __init__(self):
@@ -221,19 +279,19 @@ class MyMultinomialNB:
         self.jll_ = None
         self.weights_ = None
 
-    def fit(self, X, Y):
+    def fit(self, X, Y, sample_weight=None):
         num_samples, num_features = X.shape
 
         # Calculate class probabilities
         self.classes_, self.n_classes_ = np.unique(Y, return_counts=True)
         self.class_probabilities = dict(zip(self.classes_, self.n_classes_ / num_samples))
 
-        self.weights_ = self.compute_weights_(X, Y)
+        self.weights_ = sample_weight  # self.compute_weights_(X, Y)
 
         # Calculate word probabilities for each class
         for k, cls in enumerate(self.classes_):
             cls_indices = Y == cls
-            # cls_weight = self.weights_[k, :]
+            cls_weight = self.weights_[k, :]
             X_k = X[cls_indices] if isinstance(X[cls_indices], np.ndarray) else X[cls_indices].toarray()
 
             X_k_freq = X_k  # * cls_weight  # shape: n_sample x m
@@ -255,7 +313,7 @@ class MyMultinomialNB:
             X_i = X_i.reshape(1, -1)
 
             for k, (cls, cls_prob) in enumerate(self.class_probabilities.items()):
-                X_i_c = X_i * self.weights_[cls]  # Weighted word freq for class k, shape 1xm
+                X_i_c = X_i * self.weights_[k, :]  # Weighted word freq for class k, shape 1xm
 
                 word_prob = self.word_probabilities[cls].reshape(1, -1)
 
@@ -279,7 +337,6 @@ class MyMultinomialNB:
 
         # Merge documents
         merged_counts = np.zeros([n_class, n_features])
-        # merged_counts = np.array([[1, 0, 0], [20, 1, 0], [20, 20, 1]])  # Rows: classes, cols: features
 
         # for each class k
         for k, class_label in enumerate(classes):
@@ -287,39 +344,42 @@ class MyMultinomialNB:
             X_k = X[Y == class_label, :]  # Select rows of class k
             merged_counts[k, :] = X_k.sum(axis=0)
 
-        # Compute sample weights
-        total_counts = int(merged_counts.sum())
-        weights = {}
-        n_c = n_class  # Number of classes
-        for k, class_label in enumerate(classes):
-            cls_weights = np.zeros([n_features])
-            n_a_c = merged_counts[k, :].sum()  # Total num of words in class k
-
-            # for each feature j
-            for j in range(n_features):
-                n_aj = merged_counts[:, j].sum()  # Total number of count of feature j
-                p_aj = (n_aj + 1) / total_counts  # P(a_j)
-
-                n_aj_c = merged_counts[k, j]  # Number of count of feature j in class k
-                p_aj_kw_c = n_aj_c / n_a_c  # Prob(a_j | c)
-
-                R_aj_c = p_aj_kw_c / p_aj
-
-                p_aj_c = n_aj_c / total_counts  # Prob documents in class and contain ai
-
-                # Compute CR_ai_c : Weight of feature a_i for class c
-
-                k_ai = (merged_counts[:, j] != 0).sum()  # Number of classes of documents that contain ai
-                # Greater k_ai, smaller is the dep. bw ai and class c
-
-                # p_ai_c / p_ai  Class dist. of the documents with ai. Greater it is, greater the dep. bw ai and class c
-
-                CR_aj_c = R_aj_c * p_aj_c / p_aj * np.log(2 + (n_c + 1) / (k_ai + 1))
-
-                weights[k, j] = CR_aj_c
-                # cls_weights[j] = R_aj_c
-            # cls_weights = np.ones([n_features])
-
-            weights[class_label] = cls_weights
+        weights = merged_counts
+        weights /= n_sample
+        # --- CR ---
+        # # Compute sample weights
+        # total_counts = int(merged_counts.sum())
+        # weights = {}
+        # n_c = n_class  # Number of classes
+        # for k, class_label in enumerate(classes):
+        #     cls_weights = np.zeros([n_features])
+        #     n_a_c = merged_counts[k, :].sum()  # Total num of words in class k
+        #
+        #     # for each feature j
+        #     for j in range(n_features):
+        #         n_aj = merged_counts[:, j].sum()  # Total number of count of feature j
+        #         p_aj = (n_aj + 1) / total_counts  # P(a_j)
+        #
+        #         n_aj_c = merged_counts[k, j]  # Number of count of feature j in class k
+        #         p_aj_kw_c = n_aj_c / n_a_c  # Prob(a_j | c)
+        #
+        #         R_aj_c = p_aj_kw_c / p_aj
+        #
+        #         p_aj_c = n_aj_c / total_counts  # Prob documents in class and contain ai
+        #
+        #         # Compute CR_ai_c : Weight of feature a_i for class c
+        #
+        #         k_ai = (merged_counts[:, j] != 0).sum()  # Number of classes of documents that contain ai
+        #         # Greater k_ai, smaller is the dep. bw ai and class c
+        #
+        #         # p_ai_c / p_ai  Class dist. of the documents with ai. Greater it is, greater the dep. bw ai and class c
+        #
+        #         CR_aj_c = R_aj_c * p_aj_c / p_aj * np.log(2 + (n_c + 1) / (k_ai + 1))
+        #
+        #         # weights[k, j] = CR_aj_c
+        #         cls_weights[j] = CR_aj_c
+        #
+        #     # cls_weights = np.ones([n_features])
+        #     weights[class_label] = cls_weights
 
         return weights
