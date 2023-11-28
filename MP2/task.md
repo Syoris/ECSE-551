@@ -19,14 +19,12 @@
 
 - [x] Model Validation
 
-- Improve acc
-  - For each model -> train on whole dataset and measure score
-  - Test more features and feat selection ...
 
-- [] Kaggle submission
-
-## Report
-...
+## Sunday
+ - [ ] Results in report
+ - [ ] Code to output all results
+   - [ ] Cleanup
+   - [ ] Best nb features
 
 ## Resources
 - [Project task, MyCourse](https://mycourses2.mcgill.ca/d2l/lms/dropbox/user/folder_submit_files.d2l?db=277315&grpid=695015&isprv=0&bp=0&ou=662366)
@@ -35,7 +33,9 @@
   - https://medium.com/@monigrancharov/text-language-detection-with-python-beb49d9667b3
   - https://pypi.org/project/fasttext-langdetect/
   - [preproc text data](https://datastud.dev/posts/nlp-preprocess)
-  - Google ML tuto
+  - [Google ML tuto](https://developers.google.com/machine-learning/guides/text-classification/step-4)
+  - [SK learn example](https://scikit-learn.org/stable/auto_examples/text/plot_document_classification_20newsgroups.html#sphx-glr-auto-examples-text-plot-document-classification-20newsgroups-py)
+  - 
 
 - Text features:
     - https://www.nltk.org/api/nltk.html

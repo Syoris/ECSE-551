@@ -30,6 +30,15 @@ from langid.langid import LanguageIdentifier, model
 langid.set_languages(['en', 'fr'])
 lang_identifier = LanguageIdentifier.from_modelstring(model, norm_probs=True)
 
+MY_STOP_WORDS = ['im', 'https', 'http', 'www', 'l', 're', 'qu', 'x200b']
+
+cheat_words = {
+    'London': ['london', 'uk'],
+    'Montreal': ['mtl', 'montreal', 'quebec', 'caq'],
+    'Paris': ['eiffel', 'paris', 'france'],
+    'Toronto': ['toronto', 'to'],
+}
+
 
 def get_wordnet_pos(word):
     """Map POS tag to first character lemmatize() accepts"""
@@ -44,6 +53,20 @@ class LemmaTokenizer:
 
     def __call__(self, doc):
         return [self.wnl.lemmatize(t, pos=get_wordnet_pos(t)) for t in word_tokenize(doc) if t.isalpha()]
+
+
+def MyTokenizer(text):
+    """
+    To keep $ and pound signs
+    """
+    text = text.split()
+
+    important_symbols = ['$', '£', '€']
+    for symb in important_symbols:
+        if any(symb in string for string in text):
+            text.append(symb)
+
+    return text
 
 
 class Data:
@@ -67,7 +90,7 @@ class Data:
         self.train_data = pd.read_csv(
             self.train_file, header=None, encoding='utf-8', skiprows=[0], names=['body', 'label']
         )
-
+        self.train_data = self.train_data.sample(frac=1, random_state=0)
         self.test_data = pd.read_csv(self.test_file, header=None, encoding='utf-8', skiprows=[0], names=['id', 'body'])
 
     def _detect_lang(self):
@@ -102,34 +125,22 @@ class Format_data:
         words_dataset: Data,  # Loaded data
         dataset_name: str = 'NoName',
         # Text processing options
-        max_feat: int | None = 3000,  #  Max number of tokens
+        max_feat: int | None = None,  #  Max number of tokens
+        feature_type: Literal['Bin', 'Count', 'TF'] = 'Bin',
         n_gram: tuple = (1, 1),
-        use_tf_idf: bool = False,
-        binary_features: bool = True,  # If true, features are binary, false features are the frequency
         lemmatize: bool = False,
         lang_id: bool = False,  # If true, add a feature for the language (0: en, 1:fr)
-        rm_accents: bool = False,  # To remove accents
-        standardize_data: bool = True,  # To remove mean and std of all data
+        rm_accents: bool = True,  # To remove accents
+        standardize_data: bool = False,  # To remove mean and std of all data
         min_df: int = 1,  # Ignore terms w/ frequency lower than that
         # Feature selection options
         feat_select: Literal['PCA', 'MI', 'F_CL'] | None = None,
         n_feat_select: int = 1,  # Number of features to keep
+        weight_samples: bool = False,  # To compute the features weights
+        punc_replace: str = ' ',
     ):
         self.name: str = dataset_name
-        print(f"\tProcessing of: {self.name}... ", end='')
-
-        file_path = f'MP2/datasets/{self.name}.pkl'
-        try:
-            with open(file_path, 'rb') as f:
-                print(f' Loading dataset from file')
-                inst = pickle.load(f)
-
-        except FileNotFoundError:
-            inst = None
-
-        if inst is not None:
-            self.__dict__.update(inst.__dict__)
-            return
+        print(f"\r\tProcessing of: {self.name}... ", end='')
 
         # Attributes
         self.words_dataset: Data = words_dataset
@@ -137,13 +148,27 @@ class Format_data:
         # Text processing
         self._max_feat = max_feat
         self._n_gram = n_gram
-        self._binary_features = binary_features
-        self._use_tf_idf = use_tf_idf
+
+        self._feature_type = feature_type
+        if feature_type == 'Bin':
+            self._binary_features = True
+            self._use_tf_idf = False
+
+        elif feature_type == 'Count':
+            self._binary_features = False
+            self._use_tf_idf = False
+
+        elif feature_type == 'TF':
+            self._binary_features = False
+            self._use_tf_idf = True
+
         self._lemmatize = lemmatize
         self._lang_id = lang_id
         self._standardize_data = standardize_data
         self._rm_accents = rm_accents
         self._min_df = min_df
+        self._punc_rep = punc_replace
+        self._weight_samples = weight_samples
 
         # Feature selection
         self._feat_select_opt = feat_select
@@ -175,11 +200,13 @@ class Format_data:
         self.mi_selector = None  # MI feature selection
         self._feat_selector = self._feature_selection()
 
-        # Save dataset
-        file_name = f'MP2/datasets/{self.name}.pkl'
-        print(f" Saving to {file_name}")
-        with open(file_name, 'wb') as file:
-            pickle.dump(self, file)
+        self.sample_weight = None
+        if self._weight_samples:
+            self.sample_weight = self._compute_sample_weights()
+
+        # self.print_best_features()
+
+        print(f' Done', end='')
 
     def _vectorize_text(self):
         """
@@ -194,11 +221,9 @@ class Format_data:
         # Set tokenizer
         if self._lemmatize:
             tokenizer = LemmaTokenizer()
-            token_pattern = None
 
         else:
-            tokenizer = None
-            token_pattern = r'(?u)\b\w\w+\b'  # Defined as default value, to remove warnings
+            tokenizer = MyTokenizer
 
         strip_accents = 'unicode' if self._rm_accents else None
 
@@ -209,7 +234,7 @@ class Format_data:
                 ngram_range=self._n_gram,
                 binary=self._binary_features,
                 tokenizer=tokenizer,
-                token_pattern=token_pattern,
+                token_pattern=None,
                 strip_accents=strip_accents,
                 min_df=self._min_df,
             )
@@ -221,7 +246,7 @@ class Format_data:
                 ngram_range=self._n_gram,
                 binary=False,
                 tokenizer=tokenizer,
-                token_pattern=token_pattern,
+                token_pattern=None,
                 strip_accents=strip_accents,
                 min_df=self._min_df,
             )
@@ -244,8 +269,8 @@ class Format_data:
             [str]: List with all the post preprocessed
 
         """
-        train_df = self.words_dataset.train_data
-        test_df = self.words_dataset.test_data
+        train_df = self.words_dataset.train_data.copy(deep=True)
+        test_df = self.words_dataset.test_data.copy(deep=True)
 
         # Lower
         train_df['body'] = train_df['body'].str.lower()
@@ -254,14 +279,22 @@ class Format_data:
         # Punctuation
         # punctuation_list = "?:.,;!"
         # punctuation_list = string.punctuation
-        train_df['body'] = train_df['body'].str.replace('[{}]'.format(string.punctuation), '', regex=True)
-        test_df['body'] = test_df['body'].str.replace('[{}]'.format(string.punctuation), '', regex=True)
+        punc_list = string.punctuation.replace('$', '')
+        punc_list += '’«»“”'
+        # Remove $ from the punctuations
+        train_df['body'] = train_df['body'].str.replace('[{}]'.format(punc_list), self._punc_rep, regex=True)
+        train_df['body'] = train_df['body'].str.replace(r'[\n\\]', '', regex=True)
+
+        test_df['body'] = test_df['body'].str.replace('[{}]'.format(punc_list), self._punc_rep, regex=True)
+        test_df['body'] = test_df['body'].str.replace(r'[\n\\]', '', regex=True)
 
         return train_df['body'].to_list(), test_df['body'].to_list()
 
     # Specify stopwords
     def _get_stop_words(self):
         my_stop_words = stopwords.words('english') + stopwords.words('french')
+
+        my_stop_words += MY_STOP_WORDS
 
         if self._rm_accents:
             my_stop_words = [unidecode.unidecode(word) for word in my_stop_words]
@@ -313,7 +346,7 @@ class Format_data:
                 discrete_feat = True
                 X = self.X
 
-            # MI_info = mutual_info_classif(X=self.X.toarray(), y=self.Y, discrete_features=discrete_features, random_state=0)
+            # MI_info = mutual_info_classif(X=self.X.toarray(), Y=self.Y, discrete_features=discrete_features, random_state=0)
             my_score = partial(mutual_info_classif, random_state=0, discrete_features=discrete_feat)
             mi_selector = SelectKBest(my_score, k=self._n_feat_select)
             self.X = mi_selector.fit_transform(X, self.Y)
@@ -338,7 +371,7 @@ class Format_data:
             #     discrete_feat = True
             #     X = self.X
 
-            # MI_info = mutual_info_classif(X=self.X.toarray(), y=self.Y, discrete_features=discrete_features, random_state=0)
+            # MI_info = mutual_info_classif(X=self.X.toarray(), Y=self.Y, discrete_features=discrete_features, random_state=0)
             feat_selector = SelectKBest(f_classif, k=self._n_feat_select)
             X_trans = feat_selector.fit_transform(self.X, self.Y)
 
@@ -368,24 +401,87 @@ class Format_data:
         """
         if self._lang_id:
             # Train
-            lang_array_train = (self.words_dataset.train_data['lang'] == 'fr').astype(int).to_numpy()  # 0: en,
-            lang_sparse_train = sp.csr_matrix(lang_array_train).reshape(-1, 1)
+            en_train_array = (self.words_dataset.train_data['lang'] == 'en').astype(int).to_numpy()  # 0: en,
+            en_train_array = sp.csr_matrix(en_train_array).reshape(-1, 1)
 
-            self.X = sp.csr_matrix(sp.hstack([self.X, lang_sparse_train]))
-            self.features_name = np.append(self.features_name, 'lang')
+            fr_train_array = (self.words_dataset.train_data['lang'] == 'fr').astype(int).to_numpy()  # 0: en,
+            fr_train_array = sp.csr_matrix(fr_train_array).reshape(-1, 1)
+
+            self.X = sp.csr_matrix(sp.hstack([self.X, en_train_array, fr_train_array]))
+            self.features_name = np.append(self.features_name, ['is_en', 'is_fr'])
 
             # Test
-            lang_array_test = (self.words_dataset.test_data['lang'] == 'fr').astype(int).to_numpy()  # 0: en, 1:fr
-            lang_sparse_test = sp.csr_matrix(lang_array_test).reshape(-1, 1)
-            self.X_test = sp.csr_matrix(sp.hstack([self.X_test, lang_sparse_test]))
+            en_test_array = (self.words_dataset.test_data['lang'] == 'en').astype(int).to_numpy()  # 0: en,
+            en_test_array = sp.csr_matrix(en_test_array).reshape(-1, 1)
+
+            fr_test_array = (self.words_dataset.test_data['lang'] == 'fr').astype(int).to_numpy()  # 0: en,
+            fr_test_array = sp.csr_matrix(fr_test_array).reshape(-1, 1)
+
+            self.X_test = sp.csr_matrix(sp.hstack([self.X_test, en_test_array, fr_test_array]))
 
     def _normalize_data(self):
         """
         Remove mean and var of data
         """
-        scaler = preprocessing.StandardScaler().fit(self.X.toarray())
 
-        self.X = scaler.transform(self.X.toarray())
-        self.X_test = scaler.transform(self.X_test.toarray())
+        scaler = None
+        if self._standardize_data:
+            scaler = preprocessing.StandardScaler().fit(self.X.toarray())
+
+            self.X = scaler.transform(self.X.toarray())
+            self.X_test = scaler.transform(self.X_test.toarray())
 
         return scaler
+
+    def get_params(self):
+        return {
+            # 'max_feat': self._max_feat,
+            'n_gram': self._n_gram,
+            'feat_type': self._feature_type,
+            'lemmatized': self._lemmatize,
+            'lang': self._lang_id,
+            'standardized': self._standardize_data,
+            'rm_accents': self._rm_accents,
+            'feat_select': self._feat_select_opt,
+            'n_feat': self._n_feat_select,
+            'weight_samples': self._weight_samples,
+        }
+
+    def _compute_sample_weights(self):
+        classes_, n_classes_ = np.unique(self.Y, return_counts=True)
+
+        word_weight = 2
+        weights = np.ones([len(classes_), self._n_feat_select])
+
+        for k, cls in enumerate(classes_):
+            for word in cheat_words[cls]:
+                try:
+                    word_idx = np.where(self.features_name == word)[0][0]
+                    weights[k, word_idx] = word_weight
+                except IndexError:
+                    ...
+
+        return weights
+
+    def print_best_features(self, n_feats=20, to_excel=False):
+        """
+        To print the `n_feats` with the highest sample score for each class
+        """
+
+        feat_names = self.features_name
+        classes = np.unique(self.Y)
+
+        df_dict = {}
+        for idx, c in enumerate(classes):
+            feats_score = self.sample_weight[idx, :]
+
+            names_scores = list(zip(feat_names, feats_score))
+            feat_scores_df = pd.DataFrame(data=names_scores, columns=['Feat_names', 'Score'])
+            feat_scores_df = feat_scores_df.sort_values(by=['Score'], ascending=False).reset_index(drop=True)
+            df_dict[c] = feat_scores_df
+
+        combined_df = pd.concat(df_dict, axis=1)
+        print(combined_df.head(n_feats).to_string())
+
+        if to_excel:
+            combined_df.to_excel(f'MP2/datasets/{self.name}_scores.xlsx')
