@@ -32,13 +32,6 @@ lang_identifier = LanguageIdentifier.from_modelstring(model, norm_probs=True)
 
 MY_STOP_WORDS = ['im', 'https', 'http', 'www', 'l', 're', 'qu', 'x200b']
 
-cheat_words = {
-    'London': ['london', 'uk'],
-    'Montreal': ['mtl', 'montreal', 'quebec', 'caq'],
-    'Paris': ['eiffel', 'paris', 'france'],
-    'Toronto': ['toronto', 'to'],
-}
-
 
 def get_wordnet_pos(word):
     """Map POS tag to first character lemmatize() accepts"""
@@ -150,7 +143,6 @@ class Format_data:
         self._rm_accents = rm_accents
         self._min_df = min_df
         self._punc_rep = punc_replace
-        self._weight_samples = weight_samples
 
         # Feature selection
         self._feat_select_opt = feat_select
@@ -181,14 +173,6 @@ class Format_data:
         self.pca_selector = None  # PCA transformer
         self.mi_selector = None  # MI feature selection
         self._feat_selector = self._feature_selection()
-
-        self.sample_weight = None
-        if self._weight_samples:
-            self.sample_weight = self._compute_sample_weights()
-
-        # self.print_best_features()
-
-        print(f' Done', end='')
 
     def _vectorize_text(self):
         """
@@ -259,11 +243,9 @@ class Format_data:
         test_df['body'] = test_df['body'].str.lower()
 
         # Punctuation
-        # punctuation_list = "?:.,;!"
-        # punctuation_list = string.punctuation
         punc_list = string.punctuation.replace('$', '')
         punc_list += '’«»“”'
-        # Remove $ from the punctuations
+
         train_df['body'] = train_df['body'].str.replace('[{}]'.format(punc_list), self._punc_rep, regex=True)
         train_df['body'] = train_df['body'].str.replace(r'[\n\\]', '', regex=True)
 
@@ -345,15 +327,6 @@ class Format_data:
             feat_selector = mi_selector
 
         elif self._feat_select_opt == 'F_CL':
-            # if self._use_tf_idf:
-            #     discrete_feat = [self.X.shape[1] - 1]
-            #     X = self.X.toarray()
-            #
-            # else:
-            #     discrete_feat = True
-            #     X = self.X
-
-            # MI_info = mutual_info_classif(X=self.X.toarray(), Y=self.Y, discrete_features=discrete_features, random_state=0)
             feat_selector = SelectKBest(f_classif, k=self._n_feat_select)
             X_trans = feat_selector.fit_transform(self.X, self.Y)
 
@@ -426,44 +399,4 @@ class Format_data:
             'rm_accents': self._rm_accents,
             'feat_select': self._feat_select_opt,
             'n_feat': self._n_feat_select,
-            'weight_samples': self._weight_samples,
         }
-
-    def _compute_sample_weights(self):
-        classes_, n_classes_ = np.unique(self.Y, return_counts=True)
-
-        word_weight = 2
-        weights = np.ones([len(classes_), self._n_feat_select])
-
-        for k, cls in enumerate(classes_):
-            for word in cheat_words[cls]:
-                try:
-                    word_idx = np.where(self.features_name == word)[0][0]
-                    weights[k, word_idx] = word_weight
-                except IndexError:
-                    ...
-
-        return weights
-
-    def print_best_features(self, n_feats=20, to_excel=False):
-        """
-        To print the `n_feats` with the highest sample score for each class
-        """
-
-        feat_names = self.features_name
-        classes = np.unique(self.Y)
-
-        df_dict = {}
-        for idx, c in enumerate(classes):
-            feats_score = self.sample_weight[idx, :]
-
-            names_scores = list(zip(feat_names, feats_score))
-            feat_scores_df = pd.DataFrame(data=names_scores, columns=['Feat_names', 'Score'])
-            feat_scores_df = feat_scores_df.sort_values(by=['Score'], ascending=False).reset_index(drop=True)
-            df_dict[c] = feat_scores_df
-
-        combined_df = pd.concat(df_dict, axis=1)
-        print(combined_df.head(n_feats).to_string())
-
-        if to_excel:
-            combined_df.to_excel(f'MP2/datasets/{self.name}_scores.xlsx')
