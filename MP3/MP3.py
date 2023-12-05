@@ -22,7 +22,7 @@ from torchinfo import summary
 
 # My functions
 from data_loader import create_dataloaders
-from model import get_model, get_optimizer
+from model import get_model, get_optimizer, get_loss_fn
 from training import train_model
 from utils import set_seed
 from params import *
@@ -46,9 +46,11 @@ def train_models():
     #         row_settings=["var_names"]
     # )
 
-    optimizer = get_optimizer(model)
+    optimizer = get_optimizer(model, type="Adam")
 
-    train_model(model, optimizer)
+    loss_fn = get_loss_fn()
+
+    train_model(model, optimizer, loss_fn)
     ...
 
 

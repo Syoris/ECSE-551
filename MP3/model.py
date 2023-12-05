@@ -81,10 +81,17 @@ def get_model():
 
 def get_optimizer(
     network: Net,
-    type: Literal["SGD", "adam"] = "SGD",
+    type: Literal["SGD", "Adam"] = "SGD",
     lr: float = 0.01,
     momentum: float = 0.5,
 ):
-    optimizer = optim.SGD(network.parameters(), lr=lr, momentum=momentum)
+    if type == "SGD":
+        optimizer = optim.SGD(network.parameters(), lr=lr, momentum=momentum)
+    elif type == "Adam":
+        optimizer = optim.Adam(network.parameters(), lr=lr)
 
     return optimizer
+
+
+def get_loss_fn(type: Literal["nll", "ce"] = "ce"):
+    return nn.CrossEntropyLoss()
