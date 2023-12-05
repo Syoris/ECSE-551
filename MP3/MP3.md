@@ -9,4 +9,6 @@ TODO:
 
 ## Resources
 - [KMNIST](https://github.com/rois-codh/kmnist)
+- [PyTorch for MNIST](https://nextjournal.com/gkoehler/pytorch-mnist)
+- [Neptune.ai](https://neptune.ai/blog/how-to-keep-track-of-experiments-in-pytorch-using-neptune)
 - 
