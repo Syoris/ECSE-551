@@ -3,9 +3,8 @@ import pandas as pd
 from sklearn.model_selection import KFold
 import itertools
 
-
 def cross_val_score(
-    model_class, X, y, cv=5, base_params=None, cv_params=None, results_df=None, ds_name=None, sample_weight=None
+    model_class, X, y, cv=5, base_params=None, cv_params=None, results_df=None, ds_name=None
 ):
     """To perform K-Fold validation to find the best combination of parameters for a given model.
 

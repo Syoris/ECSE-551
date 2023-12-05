@@ -171,3 +171,7 @@ MP2/datasets/*
 results.pkl
 results.xlsx
 scores.csv
+
+# large files
+MP3/data/*
+Tutorials/data/*

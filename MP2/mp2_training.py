@@ -4,14 +4,14 @@ To find the best model and their parameter combination using K-Fold validation
 import pickle
 
 from sklearn.naive_bayes import BernoulliNB, GaussianNB, MultinomialNB, ComplementNB
-from sklearn.svm import SVC
-from sklearn import tree
+from sklearn.svm import SVC, LinearSVC
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 
-from NaiveBayes import NaiveBayes, MyMultinomialNB
+from NaiveBayes import NaiveBayes
 
 from cross_val_score import cross_val_score
 from data_processing import Data, Format_data
@@ -34,7 +34,7 @@ import itertools
 """ Define training datasets """
 # Load text datasets
 print(f"Loading data files... ", end='')
-filenames = ["MP2/data/train.csv", "MP2/data/test.csv"]
+filenames = ["MP2/data/train_utf8.csv", "MP2/data/test_utf8.csv"]
 words_dataset = Data(train_file=filenames[0], test_file=filenames[1])
 print(f'Done')
 
@@ -66,16 +66,22 @@ ds_options = {
 #     'weight_samples': [False],
 # }
 
-print(f"Processing input data...")
-keys, values = zip(*ds_options.items())
-ds_options_list = [dict(zip(keys, v)) for v in itertools.product(*values)]
 
-ds_list = []
-for idx, each_ds in enumerate(ds_options_list):
-    each_ds['dataset_name'] = f'DS {idx}'
-    ds_list.append(Format_data(words_dataset, **each_ds))
+def create_datasets(ds_options_dict):
+    """
+    To create a list with all the combinations of options in the dict
+    """
+    print(f"Processing input data...")
+    keys, values = zip(*ds_options_dict.items())
+    ds_options_list = [dict(zip(keys, v)) for v in itertools.product(*values)]
 
-print(f'Done')
+    ds_list = []
+    for idx, each_ds in enumerate(ds_options_list):
+        each_ds['dataset_name'] = f'DS {idx}'
+        ds_list.append(Format_data(words_dataset, **each_ds))
+
+    print(f'\nDone')
+    return ds_list
 
 
 ##
@@ -86,17 +92,18 @@ model_dict["My NB"] = {
     'cv_params': None,
 }
 
-model_dict["MyMultinomialNB"] = {
-    "model": MyMultinomialNB,
-    'base_params': {},
-    'cv_params': None,
-}
+# model_dict["MyMultinomialNB"] = {
+#     "model": MyMultinomialNB,
+#     'base_params': {},
+#     'cv_params': None,
+# }
 
 model_dict["MultinomialNB"] = {
     "model": MultinomialNB,
     'base_params': {},
     'cv_params': None,
 }
+
 #
 # model_dict["ComplementNB"] = {
 #     "model": ComplementNB,
@@ -228,9 +235,10 @@ def compute_models_cv_acc(model_dict, ds_list):
     return results_df
 
 
-def create_pred_ds():
-    with open('MP2/results.pkl', "rb") as file:
-        results_df = pickle.load(file)
+def create_pred_ds(results_df, ds_list):
+    if results_df is None:
+        with open('MP2/results.pkl', "rb") as file:
+            results_df = pickle.load(file)
 
     results_df['Test Acc'] = 0.0
 
@@ -241,15 +249,21 @@ def create_pred_ds():
 
         results_df.at[row_idx, 'Test Acc'] = test_acc
 
-    results_df.to_excel('MP2/results.xlsx')
+    column_to_move = 'Test Acc'
+    # Move the specified column to the first position
+    cols = results_df.columns.tolist()
+    cols.insert(0, cols.pop(cols.index(column_to_move)))
+    results_df = results_df[cols]
 
-    print(f"### Ordered Models ###")
+    # results_df.to_excel('MP2/results.xlsx')
+
+    # print(f"### Ordered Models ###")
     # print((results_df.sort_values(by=['Score'], ascending=False)).to_string())
     print((results_df.sort_values(by=['Test Acc', 'Score'], ascending=False)).to_string())
 
     model_idx = int(input(f"Input idx of model to use for test prediction: "))
 
-    my_model_info = results_df.iloc[model_idx]
+    my_model_info = results_df.loc[model_idx]
     print(f'Model chosen: ')
     print(my_model_info)
 
@@ -309,8 +323,71 @@ def check_nb_weights(model_info):
 
 
 if __name__ == '__main__':
-    results_df = compute_models_cv_acc(model_dict, ds_list)
-    create_pred_ds()
+    # print('\n\n############################# NB #############################')
+    # nb_ds_options = {
+    #     'max_feat': [None],
+    #     'lang_id': [False, True],  # [False, True],
+    #     'feature_type': ['Bin'],  # Options: 'Bin', 'Count', 'TF'
+    #     'n_gram': [(1, 2), (1, 3)],
+    #     'lemmatize': [False],
+    #     'feat_select': ['F_CL'],  # Options: 'PCA', 'MI', 'F_CL', None
+    #     'n_feat_select': [2000],
+    # }
+    # nb_ds_list = create_datasets(nb_ds_options)
+    # nb_model_dict = {}
+    # nb_model_dict["My Bernouilli NB"] = {
+    #     "model": NaiveBayes,
+    #     'base_params': {'laplace_smoothing': True, 'verbose': False},
+    #     'cv_params': None,
+    # }
+    # nb_results_df = compute_models_cv_acc(nb_model_dict, nb_ds_list)
+    # create_pred_ds(nb_results_df, nb_ds_list)
+
+    print('\n\n############################# Linear SVC #############################')
+    svc_ds_options = {
+        'max_feat': [None],
+        'lang_id': [False, True],  # [False, True],
+        'feature_type': ['Count'],  # Options: 'Bin', 'Count', 'TF'
+        'n_gram': [(1, 2), (1, 3)],
+        'lemmatize': [False],
+        'feat_select': ['F_CL'],  # Options: 'PCA', 'MI', 'F_CL', None
+        'n_feat_select': [2000],
+    }
+    svc_ds_list = create_datasets(svc_ds_options)
+
+    svc_model_dict = {}
+    svc_model_dict["Linear SVC"] = {
+        "model": LinearSVC,
+        "base_params": {"random_state": 0},
+        "cv_params": {"C": [0.0001, 0.001, 0.005, 0.01, 0.05, 0.1, 1]},
+    }
+    svc_results_df = compute_models_cv_acc(svc_model_dict, svc_ds_list)
+    create_pred_ds(svc_results_df, svc_ds_list)
+
+    # print('\n\n############################# DT #############################')
+    # dt_ds_options = {
+    #     'max_feat': [None],
+    #     'lang_id': [False, True],  # [False, True],
+    #     'feature_type': ['Count'],  # Options: 'Bin', 'Count', 'TF'
+    #     'n_gram': [(1, 2), (1, 3), (1, 4)],
+    #     'lemmatize': [False],
+    #     'feat_select': ['F_CL'],  # Options: 'PCA', 'MI', 'F_CL', None
+    #     'n_feat_select': [500, 1000, 2000, 3000],
+    # }
+    # dt_ds_list = create_datasets(dt_ds_options)
+    #
+    # dt_model_dict = {}
+    # dt_model_dict["DT"] = {
+    #     "model": DecisionTreeClassifier,
+    #     "base_params": {"random_state": 0},
+    #     "cv_params": {
+    #         "criterion": ['gini', 'entropy'],
+    #         "max_depth": [50, 100, 500, 1000],
+    #         "min_samples_split": [2, 5, 10],
+    #     },
+    # }
+    # dt_results_df = compute_models_cv_acc(dt_model_dict, dt_ds_list)
+    # create_pred_ds(dt_results_df, dt_ds_list)
 
 
 ### TEMP UTILITIES ###

@@ -128,14 +128,6 @@ class NaiveBayes:
 
         self._joint_log_likelihood = np.zeros((n_samples, self._n_class))
 
-        # # SK
-        # from sklearn.utils.extmath import safe_sparse_dot
-
-        # jll = safe_sparse_dot(X, (feat_log_proba - feat_log_neg_proba).T)
-        # jll += log_class_prior + feat_log_neg_proba.sum(axis=1)
-
-        # Compute discriminants of classes for all samples
-        # Σ [ x_j * (log P(x|Y) - log( 1 - P(x|Y) ) + log( 1-P(x|Y) )]
         self._joint_log_likelihood = X @ (feat_log_proba - feat_log_neg_proba).T + feat_log_neg_proba.sum(axis=1)
 
         # Add class log priors
@@ -195,3 +187,4 @@ class NaiveBayes:
                     theta_j_k = n_xj_yk / n_yk
 
                 self._thetas[k, j + 1] = theta_j_k  # \theta_{j, k}
+
