@@ -15,7 +15,7 @@ from utils import print_infos, show_image
 from params import *
 
 
-NUM_WORKERS = os.cpu_count()
+NUM_WORKERS = 0  # os.cpu_count()
 
 
 class MyDataset(Dataset):

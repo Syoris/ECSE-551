@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from itertools import chain
 
 
 def print_infos(dataset, img_idx=None):
@@ -53,3 +54,39 @@ def set_seed(seed: int = 0):
     torch.manual_seed(seed)
     # Set the seed for CUDA torch operations (ones that happen on the GPU)
     torch.cuda.manual_seed(seed)
+
+
+def plot_training_loss(results: dict):
+    train_counter = list(chain(*results["train_log_counter"]))
+    train_losses = list(chain(*results["train_loss"]))
+
+    val_counter = results["val_log_counter"]
+    val_losses = results["val_loss"]
+
+    # Plot training progression
+    fig = plt.figure()
+    plt.plot(train_counter, train_losses, color="blue")
+    plt.scatter(val_counter, val_losses, color="red")
+    plt.legend(["Train Loss", "Validation Loss"], loc="upper right")
+    plt.xlabel("Number of training examples seen")
+    plt.ylabel("Loss")
+    plt.title("Loss - Training Progression")
+    plt.show(block=False)
+
+
+def plot_training_acc(results: dict):
+    train_counter = list(chain(*results["train_log_counter"]))
+    train_acc = list(chain(*results["train_acc"]))
+
+    val_counter = results["val_log_counter"]
+    val_acc = results["val_acc"]
+
+    # Plot training progression
+    fig = plt.figure()
+    plt.plot(train_counter, train_acc, color="blue")
+    plt.scatter(val_counter, val_acc, color="red")
+    plt.legend(["Train Acc", "Validation Acc"], loc="upper right")
+    plt.xlabel("Number of training examples seen")
+    plt.ylabel("Acc")
+    plt.title("Accuracy - Training Progression")
+    plt.show(block=False)

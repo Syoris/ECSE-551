@@ -55,26 +55,26 @@ class Net(nn.Module):
 
 
 def get_model():
-    # Option 1 - Pre trained model
-    weights = (
-        torchvision.models.EfficientNet_B0_Weights.DEFAULT
-    )  # NEW in torchvision 0.13, "DEFAULT" means "best weights available"
-    model = torchvision.models.efficientnet_b0(weights=weights).to(DEVICE)
+    # # Option 1 - Pre trained model
+    # weights = (
+    #     torchvision.models.EfficientNet_B0_Weights.DEFAULT
+    # )  # NEW in torchvision 0.13, "DEFAULT" means "best weights available"
+    # model = torchvision.models.efficientnet_b0(weights=weights).to(DEVICE)
 
-    # Freeze all base layers by setting requires_grad attribute to False
-    for param in model.features.parameters():
-        param.requires_grad = False
+    # # Freeze all base layers by setting requires_grad attribute to False
+    # for param in model.features.parameters():
+    #     param.requires_grad = False
 
-    set_seed()
+    # set_seed()
 
-    # Update the classifier head to suit our problem
-    model.classifier = nn.Sequential(
-        nn.Dropout(p=0.2, inplace=True),
-        nn.Linear(in_features=1280, out_features=10, bias=True).to(DEVICE),
-    )
+    # # Update the classifier head to suit our problem
+    # model.classifier = nn.Sequential(
+    #     nn.Dropout(p=0.2, inplace=True),
+    #     nn.Linear(in_features=1280, out_features=10, bias=True).to(DEVICE),
+    # )
 
     # # Option 2
-    # model = Net()
+    model = Net()
 
     return model
 

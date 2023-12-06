@@ -8,7 +8,11 @@ SEED = 1
 DEVICE = "cuda" if cuda.is_available() else "cpu"
 
 # Hyperparameters
-n_epochs = 2
-learning_rate = 0.01
-momentum = 0.5
-log_interval = 10
+N_EPOCHS = 2
+LR = 0.01
+MOMENTUM = 0.5
+
+LOG_INTERVAL = 10
+
+TRAIN_BATCH_SIZE = 64
+TEST_BATCH_SIZE = 1000
