@@ -3,6 +3,7 @@ To create the train, val and test DataLoaders classes
 """
 import os
 
+import torchvision
 from torchvision import transforms
 from torch.utils.data import Dataset
 
@@ -49,6 +50,12 @@ class MyDataset(Dataset):
         with open(img_file_name, "rb") as img_file:
             self.data = pickle.load(img_file, encoding="bytes")
 
+        if N_CHANNEL == 3:
+            # Repeat grey image for 3 channels. To allow the use with RGB models
+            self.data = np.repeat(self.data, 3, 1)
+
+        self.data = np.moveaxis(self.data, 1, -1)  # Move channel to last position
+
         if label_file_name is not None:
             label_file = f"{folder_path}/{label_file_name}"
 
@@ -73,8 +80,11 @@ class MyDataset(Dataset):
         return l
 
     def __getitem__(self, index):
-        img = self.data[index][0]
-        target = int(self.targets[index])
+        img = self.data[index]
+        if self.targets is None:
+            target = None
+        else:
+            target = int(self.targets[index])
 
         if self.transform is not None:
             # img = Image.fromarray(img.astype('float'), mode='L')
@@ -98,12 +108,16 @@ def create_dataloaders(
     img_transform = transforms.Compose(
         [
             transforms.ToTensor(),
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
             transforms.Normalize(
                 [0.5], [0.5]
             ),  # transforms.Normalize((0.1307,), (0.3081,) #TODO: Find mean and var of dataset
         ]
     )
-    # img_transform = None
+
+    weights = torchvision.models.EfficientNet_B0_Weights.DEFAULT
+    automatic_transforms = weights.transforms()
+    # img_transform = automatic_transforms
 
     data_folder = f"MP3/data"
 

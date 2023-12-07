@@ -12,11 +12,12 @@ def print_infos(dataset, img_idx=None):
     Args:
         img_idx (int, optional): Image to show. Defaults to None.
     """
+    img_shape = dataset[0][0].shape
 
     # General information
     print(f"Information about the dataset:")
     print(f"\tNumber of samples: {dataset.data.shape[0]}")
-    print(f"\tFeature space: {dataset.data.shape[-2]}*{dataset.data.shape[-1]}")
+    print(f"\tFeature space: {img_shape}")
 
     if dataset.targets is not None:
         classes, classes_count = np.unique(dataset.targets, return_counts=True)
@@ -90,3 +91,14 @@ def plot_training_acc(results: dict):
     plt.ylabel("Acc")
     plt.title("Accuracy - Training Progression")
     plt.show(block=False)
+
+
+def get_run_name(model_name: str):
+    from datetime import datetime
+
+    # Get timestamp of current date (all experiments on certain day live in same folder)
+    timestamp = datetime.now().strftime(
+        "%y%m%d_%H%M"
+    )  # returns current date in YYYY-MM-DD format
+
+    return f"{model_name}_{timestamp}"

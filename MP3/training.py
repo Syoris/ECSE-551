@@ -6,6 +6,7 @@ import torch
 from typing import Dict, List, Tuple
 from tqdm.auto import tqdm
 from params import *
+import numpy as np
 
 PRINT_TRAINING = False
 
@@ -92,13 +93,34 @@ def train_model(
         results["val_acc"].append(val_acc)
         results["val_log_counter"].append(val_log_counter)
 
-        # To TensorBoard
+        # To TensorBoard Writer
+        writer.add_scalars(
+            main_tag="Loss",
+            tag_scalar_dict={"train_loss": train_loss[-1], "val_loss": val_loss},
+            global_step=epoch,
+        )
+
+        # Add accuracy results to SummaryWriter
+        writer.add_scalars(
+            main_tag="Accuracy",
+            tag_scalar_dict={"train_acc": train_acc[-1], "val_acc": val_acc},
+            global_step=epoch,
+        )
+
+        # Track the PyTorch model architecture
+        writer.add_graph(
+            model=model,
+            # Pass in an example input
+            input_to_model=torch.randn(
+                TEST_BATCH_SIZE, N_CHANNEL, IMG_SIZE, IMG_SIZE
+            ).to(DEVICE),
+        )
         ...
 
     writer.close()
 
     print(f"-----------------------------")
-    print(f'Final val acc: {results["val_acc"][-1]}')
+    print(f'Final val acc: {results["val_acc"][-1] * 100. :.2f}%')
     print(f"-----------------------------")
 
     return results
@@ -175,11 +197,14 @@ def train_step(
                 print(
                     f"Train Epoch: {epoch_num} [{curr_count}/{n_samples} ({100. * batch_idx / n_batch:.0f}%){']':<5} Loss: {loss.item():<10.6f} Acc: {acc:.6f}"
                 )
+            try:
+                torch.save(model.state_dict(), f"MP3/models/model.pth")
+                torch.save(optimizer.state_dict(), f"MP3/models/optimizer.pth")
+            except Exception as err:
+                ...
+                # print(f"Error saving model")
 
-            torch.save(model.state_dict(), f"MP3/models/model.pth")
-            torch.save(optimizer.state_dict(), f"MP3/models/optimizer.pth")
-
-    return (train_loss, train_acc, train_log_counter)
+    return (np.array(train_loss), np.array(train_acc), np.array(train_log_counter))
 
 
 def val_step(
@@ -224,6 +249,8 @@ def val_step(
     val_loss /= len(dataloader)
     val_acc /= len(dataloader)
     val_log_counter = epoch_num * train_n_samples
-    print(f"\nTest set: Avg. loss: {val_loss:<10.4f}, Accuracy: {val_acc*100:.2f}%\n")
+    print(
+        f"Validation set: Avg. Loss: {val_loss:<10.4f} Avg. Acc: {val_acc*100:.2f}%\n"
+    )
 
-    return (val_loss, val_acc, val_log_counter)
+    return (np.array(val_loss), np.array(val_acc), np.array(val_log_counter))

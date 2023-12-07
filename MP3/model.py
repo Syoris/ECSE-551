@@ -7,6 +7,7 @@ import torch.optim as optim
 
 from typing import Literal
 import torchvision
+from torchinfo import summary
 
 from utils import set_seed
 from params import *
@@ -54,27 +55,54 @@ class Net(nn.Module):
         return F.log_softmax(x)
 
 
-def get_model():
-    # # Option 1 - Pre trained model
-    # weights = (
-    #     torchvision.models.EfficientNet_B0_Weights.DEFAULT
-    # )  # NEW in torchvision 0.13, "DEFAULT" means "best weights available"
-    # model = torchvision.models.efficientnet_b0(weights=weights).to(DEVICE)
+def get_efficientnet_b0():
+    weights = (
+        torchvision.models.EfficientNet_B0_Weights.DEFAULT
+    )  # NEW in torchvision 0.13, "DEFAULT" means "best weights available"
+    model = torchvision.models.efficientnet_b0(weights=weights).to(DEVICE)
 
-    # # Freeze all base layers by setting requires_grad attribute to False
-    # for param in model.features.parameters():
-    #     param.requires_grad = False
+    # Freeze all base layers by setting requires_grad attribute to False
+    for param in model.features.parameters():
+        param.requires_grad = False
 
-    # set_seed()
+    set_seed()
 
-    # # Update the classifier head to suit our problem
-    # model.classifier = nn.Sequential(
-    #     nn.Dropout(p=0.2, inplace=True),
-    #     nn.Linear(in_features=1280, out_features=10, bias=True).to(DEVICE),
-    # )
+    # Update the classifier head to suit our problem
+    model.classifier = nn.Sequential(
+        nn.Dropout(p=0.2, inplace=True),
+        nn.Linear(in_features=1280, out_features=10, bias=True).to(DEVICE),
+    )
 
-    # # Option 2
+    return model
+
+
+def get_my_net():
+    set_seed()
     model = Net()
+
+    return model
+
+
+def get_model():
+    # model = get_efficientnet_b0()
+    model = get_my_net()
+
+    # summary(model)
+    print(
+        summary(
+            model,
+            input_size=(
+                TRAIN_BATCH_SIZE,
+                N_CHANNEL,
+                IMG_SIZE,
+                IMG_SIZE,
+            ),  # make sure this is "input_size", not "input_shape" (batch_size, color_channels, height, width)
+            verbose=0,
+            col_names=["input_size", "output_size", "num_params", "trainable"],
+            col_width=20,
+            row_settings=["var_names"],
+        )
+    )
 
     return model
 
