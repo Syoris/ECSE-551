@@ -1,7 +1,6 @@
 """
 Functions to train the model
 """
-from torch.utils.tensorboard import SummaryWriter
 import torch
 from typing import Dict, List, Tuple
 from tqdm.auto import tqdm

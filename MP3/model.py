@@ -11,7 +11,130 @@ from torchinfo import summary
 
 from utils import set_seed
 from params import *
+import neptune
+from neptune.types import File
 
+
+def compute_img_size(in_size, filter_size, stride, padding, pooling: bool):
+    if padding == "same":
+        img_size = in_size
+
+    else:
+        img_size = int((in_size - filter_size) / stride + 1)
+
+    if pooling:
+        img_size /= 2
+
+    return int(img_size)
+
+
+class Net2(nn.Module):
+    # This part defines the layers
+    def __init__(self, input_size: int = 1, output_size: int = 10, dropout_prob:float =0.0):
+        """Our custom CNN
+
+        Args:
+            input_size (int): Number of channel of for input
+            output_size (int): Number of classes
+        """
+        super(Net, self).__init__()
+
+        # Parameters
+        act_function = nn.ReLU()
+        final_act_function = nn.LogSoftmax(dim=1)
+        dropout_rate = nn.Dropout(p=dropout_prob)
+        pool = nn.MaxPool2d(kernel_size=(2, 2))
+
+        # ------- Conv -------
+        # Conv1: 1 channel(greyscale) to 10 channnels. Kernel=5, stride=1
+        in_channels = input_size
+        out_channels = 10
+        kernel_size = 5
+        padding = "valid"  # same: With 0 padding, image is same size, valid: no padding
+        stride = 1
+        in_img_size = IMG_SIZE
+        pooling = True
+        self.conv1 = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            padding=padding,
+            stride=stride,
+        )
+        self.conv1_act = act_function
+        self.conv1_pool = pool
+
+        out_img_size = compute_img_size(in_img_size, kernel_size, stride, padding, pooling)
+
+        # Conv2: 10 channels to 20 channnels. Kernel=5, stride=1
+        in_channels = out_channels
+        out_channels = 20
+        kernel_size = 5
+        padding = "valid"  # same: With 0 padding, image is same size, valid: no padding
+        stride = 1
+        in_img_size = out_img_size
+        pooling = True
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.conv2_act = act_function
+        self.conv2_pool = pool
+
+        out_img_size = compute_img_size(in_img_size, kernel_size, stride, padding, pooling)
+
+        # # Conv forward pass
+        # self.conv_seq_1 = nn.Sequential(self.conv1, act_function, pool) 
+        # self.conv_seq_2 = nn.Sequential(self.conv2, act_function, pool) 
+
+        # self.conv_fw = nn.Sequential(self.conv_seq_1, self.conv_seq_2)
+
+        # ------- Seq -------
+        self.fc_in_size = out_img_size**2 * out_channels  # Input size to fully connected layers
+        self.fc1 = nn.Linear(self.fc_in_size, 50)
+        self.fc1_act = act_function
+        self.fc1_drop = dropout_rate
+
+        # The last layer size the same as the num of classes
+        self.fc2 = nn.Linear(50, output_size)
+        self.fc2_act = final_act_function
+
+        # # Seq forward pass
+        # self.fc_seq_1 = nn.Sequential(self.fc1, act_function, dropout_rate)
+        # self.fc_seq_2 = nn.Sequential(self.fc2, dropout_rate, final_act_function)
+        
+        # self.fc_fw = nn.Sequential(self.fc_seq_1, self.fc_seq_2)
+
+    # And this part defines the way they are connected to each other
+    # (In reality, it is our forward pass)
+    def forward(self, x):
+        # # Convolutional layer foward pass
+        # x = self.conv_seq_1(x)
+        # x = self.conv_seq_1(x)
+
+        # # Imaginary layer
+        # x = x.view(-1, self.fc_in_size)
+
+        # # Fully connected layers forward pass
+        # x = self.fc_fw(x)
+
+        # ----- Conv -----
+        # Conv1
+        x = self.conv1_act(self.conv1_pool(self.conv1(x)))
+
+        # Conv2
+        x = self.conv2_act(self.conv2_pool(self.conv2(x)))
+
+        # ----- Fully Connected -----
+        # Imaginary layer
+        x = x.view(-1, self.fc_in_size)
+
+        # FC1
+        # x = self.fc1_drop(self.fc1_act(self.fc1(x)))
+        x = self.fc1_act(self.fc1(x))
+
+
+        # FC2
+        x = self.fc2(x)
+
+        return F.log_softmax(x)
 
 class Net(nn.Module):
     # This part defines the layers
@@ -27,8 +150,10 @@ class Net(nn.Module):
         self.fc2 = nn.Linear(50, 10)
 
     # And this part defines the way they are connected to each other
-    # (In reality, it is our forward pass)
+    # (In reality, it is our foreward pass)
     def forward(self, x):
+
+
         # F.relu is ReLU activation. F.max_pool2d is a max pooling layer with n=2
         # Max pooling simply selects the maximum value of each square of size n. Effectively dividing the image size by n
         # At first, x is out input, so it is 1x28x28
@@ -53,8 +178,7 @@ class Net(nn.Module):
 
         # We should put an appropriate activation for the output layer.
         return F.log_softmax(x)
-
-
+    
 def get_efficientnet_b0():
     weights = (
         torchvision.models.EfficientNet_B0_Weights.DEFAULT
@@ -83,26 +207,28 @@ def get_my_net():
     return model
 
 
-def get_model():
+def get_model(model_type: Literal["net"], neptune_run: neptune.Run):
     # model = get_efficientnet_b0()
-    model = get_my_net()
+    if model_type == "net":
+        model = get_my_net()
 
     # summary(model)
-    print(
-        summary(
-            model,
-            input_size=(
-                TRAIN_BATCH_SIZE,
-                N_CHANNEL,
-                IMG_SIZE,
-                IMG_SIZE,
-            ),  # make sure this is "input_size", not "input_shape" (batch_size, color_channels, height, width)
-            verbose=0,
-            col_names=["input_size", "output_size", "num_params", "trainable"],
-            col_width=20,
-            row_settings=["var_names"],
-        )
+    model_info = summary(
+        model,
+        input_size=(
+            TRAIN_BATCH_SIZE,
+            N_CHANNEL,
+            IMG_SIZE,
+            IMG_SIZE,
+        ),  # make sure this is "input_size", not "input_shape" (batch_size, color_channels, height, width)
+        verbose=0,
+        col_names=["input_size", "output_size", "num_params", "trainable"],
+        col_width=20,
+        row_settings=["var_names"],
     )
+
+    neptune_run["model/type"] = model_type
+    neptune_run["model/summary"].upload(File.from_content(str(model_info)))
 
     return model
 

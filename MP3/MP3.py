@@ -32,16 +32,11 @@ torch.backends.cudnn.enabled = False
 
 def train_models():
     print(f"------- Training models -------")
-    # ---- Load Data ---
-    train_dl, val_dl, test_dl = create_dataloaders(
-        TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, print_ds_infos=True
-    )
 
-    # --- Train Model ---
+    # --- Setup Run ---
     model_name = "MyNet"
     run_name = utils.get_run_name(model_name)
     print(f"Model: {model_name}\t Neptune run: {run_name}")
-
     run = neptune.init_run(
         project="MyResearch/ECSE551-MP3",
         api_token=NEPTUNE_API,
@@ -49,6 +44,12 @@ def train_models():
         source_files=["MP3/*.py"],
     )
 
+    # ---- Load Data ---
+    train_dl, val_dl, test_dl = create_dataloaders(
+        TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, print_ds_infos=True, neptune_run=run
+    )
+
+    # --- Train Model ---
     hyperparameters = {
         "seed": SEED,
         "img_size": IMG_SIZE,
@@ -60,7 +61,7 @@ def train_models():
     }
     run["parameters"] = hyperparameters
 
-    model = get_model()
+    model = get_model(model_type="net", neptune_run=run)
 
     optimizer = get_optimizer(model, type="Adam")
 

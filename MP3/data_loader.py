@@ -11,12 +11,30 @@ from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 
 import utils
 from params import *
-
+import neptune
 
 NUM_WORKERS = 0  # os.cpu_count()
+
+
+def show_image(img, vmin=0, vmax=1, ax=None):
+    """To show the image
+
+    Args:
+        img (Image): Image to show
+        vmin (int, optional): Min value of the scale. Defaults to 0.
+        vmax (int, optional): Max value of the scale. Defaults to 1.
+    """
+    # plt.imshow(img.cpu().numpy(), cmap='gray', vmin=vmin, vmax=vmax)
+    
+    if ax is not None:
+        ax.imshow(img[0], cmap='gray', vmin=vmin, vmax=vmax)
+        
+    else:
+        plt.imshow(img[0], cmap='gray', vmin=vmin, vmax=vmax)
 
 
 class MyDataset(Dataset):
@@ -102,18 +120,33 @@ def create_dataloaders(
     test_batch_size: int,
     num_workers: int = NUM_WORKERS,
     print_ds_infos: bool = False,
+    plot_images: bool = False,
+    neptune_run: neptune.Run | None = None,
 ):
     print("Creating datasets...")
     # Load the dataset
+    mean = 0.5 #  0.1571
+    std = 0.5 #  0.2676
+    neptune_run['dataset/mean'] = mean
+    neptune_run['dataset/std'] = std
     img_transform = transforms.Compose(
         [
             transforms.ToTensor(),
+            transforms.Normalize(mean=(mean), std=(std)),
             transforms.Resize((IMG_SIZE, IMG_SIZE)),
-            transforms.Normalize(
-                mean=(0.1571), std=(0.2676)
-            ),  # transforms.Normalize((0.1307,), (0.3081,) #TODO: Find mean and var of dataset
+            # transforms.RandomRotation(10),
         ]
     )
+
+    # img_transform = transforms.Compose(
+    #     [
+    #         transforms.ToTensor(),
+    #         transforms.Resize((IMG_SIZE, IMG_SIZE)),
+    #         transforms.Normalize(
+    #             [0.1571], [0.2676]
+    #         ),  # transforms.Normalize((0.1307,), (0.3081,) #TODO: Find mean and var of dataset
+    #     ]
+    # )
 
     # weights = torchvision.models.EfficientNet_B0_Weights.DEFAULT
     # automatic_transforms = weights.transforms()
@@ -133,12 +166,14 @@ def create_dataloaders(
         transform=None,
         folder_path=data_folder,
     )
+
     full_train_ds = MyDataset(
         train_file,
         label_file_name=train_label_file,
         transform=img_transform,
         folder_path=data_folder,
     )
+
     test_ds = MyDataset(test_file, transform=img_transform, folder_path=data_folder)
 
     # Train/Val Datasets
@@ -157,6 +192,7 @@ def create_dataloaders(
         folder_path=data_folder,
         idx=train_indices,
     )
+
     val_ds = MyDataset(
         train_file,
         label_file_name=train_label_file,
@@ -204,6 +240,33 @@ def create_dataloaders(
 
         print(f"\n--- Test dataset ---")
         utils.print_infos(test_ds)
+
+    # Look a the first k images. Compare with and w/o transform
+    k = 4
+    fig, axes = plt.subplots(2, k)
+    row_titles = ['No Transform', 'Transf']
+
+    for i, ax in enumerate(axes.flat):
+        row = i // k  # Calculate the row index
+        col = i % k  # Calculate the column index
+        if row == 0:
+            img, _ = no_transform_ds[col]
+            vmin, vmax = 0, 1
+        else:
+            img, _ = full_train_ds[col]
+            vmin, vmax = -1, 1
+
+        show_image(img, ax=ax, vmin=vmin, vmax=vmax)
+
+        if col == 0:
+            ax.set_title(row_titles[row])  # Set row-wise title for the first image in each row
+        ax.set_xlabel(f'Image {col}')  # Set individual title for each image
+
+    if plot_images:
+        plt.show(block=False)
+
+    neptune_run['dataset/transform_comp'].upload(fig)
+
 
     # Compute mean and var
     # utils.compute_mean_std(full_train_ds.data)
