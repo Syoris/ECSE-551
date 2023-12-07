@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from itertools import chain
+from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
+from params import *
 
 
 def print_infos(dataset, img_idx=None):
@@ -102,3 +105,25 @@ def get_run_name(model_name: str):
     )  # returns current date in YYYY-MM-DD format
 
     return f"{model_name}_{timestamp}"
+
+
+def compute_mean_std(dataset: np.ndarray):
+    print(f"\nComputing mean and variance...")
+    psum = torch.tensor([0.0])
+    psum_sq = torch.tensor([0.0])
+
+    image_loader = DataLoader(dataset, batch_size=128, shuffle=False, num_workers=0)
+
+    for inputs in tqdm(image_loader):
+        psum += inputs.sum(axis=[0, 1, 2])
+        psum_sq += (inputs**2).sum(axis=[0, 1, 2])
+
+    count = len(dataset) * 28 * 28
+
+    # mean and STD
+    total_mean = psum / count
+    total_var = (psum_sq / count) - (total_mean**2)
+    total_std = torch.sqrt(total_var)
+
+    print("- mean: {:.4f}".format(total_mean.item()))
+    print("- std:  {:.4f}".format(total_std.item()))

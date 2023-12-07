@@ -2,17 +2,17 @@
 
 TODO:
 
-- Continue training from save
 - Save net, optimizer and lists?
-- Way to track the different nets and their perf
 - Print images before and after transform
+- Load model from neptune, train on whole ds and predict
 
 
 ## Resources
 - [KMNIST](https://github.com/rois-codh/kmnist)
 - [PyTorch for MNIST](https://nextjournal.com/gkoehler/pytorch-mnist)
 - [Neptune.ai](https://neptune.ai/blog/how-to-keep-track-of-experiments-in-pytorch-using-neptune)
-
+- [PyTorch models](https://pytorch.org/vision/stable/models.html)
+- [Neptune quickstart](https://docs.neptune.ai/usage/quickstart/#)
 
 
 ## To cite

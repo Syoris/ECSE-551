@@ -23,7 +23,7 @@ from sklearn.model_selection import train_test_split
 from data_loader import create_dataloaders
 from model import get_model, get_optimizer, get_loss_fn
 from training import train_model
-from utils import set_seed, plot_training_acc, plot_training_loss, get_run_name
+import utils
 from params import *
 import neptune
 
@@ -32,8 +32,14 @@ torch.backends.cudnn.enabled = False
 
 def train_models():
     print(f"------- Training models -------")
+    # ---- Load Data ---
+    train_dl, val_dl, test_dl = create_dataloaders(
+        TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, print_ds_infos=True
+    )
+
+    # --- Train Model ---
     model_name = "MyNet"
-    run_name = get_run_name(model_name)
+    run_name = utils.get_run_name(model_name)
     print(f"Model: {model_name}\t Neptune run: {run_name}")
 
     run = neptune.init_run(
@@ -54,22 +60,18 @@ def train_models():
     }
     run["parameters"] = hyperparameters
 
-    train_dl, val_dl, test_dl = create_dataloaders(
-        TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, print_ds_infos=True
-    )
-
     model = get_model()
 
     optimizer = get_optimizer(model, type="Adam")
 
     loss_fn = get_loss_fn()
 
-    results = train_model(model, train_dl, val_dl, optimizer, loss_fn, N_EPOCHS)
+    results = train_model(model, train_dl, val_dl, optimizer, loss_fn, N_EPOCHS, run)
 
     run.stop()
 
-    plot_training_loss(results)
-    plot_training_acc(results)
+    utils.plot_training_loss(results)
+    utils.plot_training_acc(results)
 
     ...
 

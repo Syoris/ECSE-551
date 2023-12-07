@@ -25,4 +25,3 @@ TRAIN_BATCH_SIZE = 64
 TEST_BATCH_SIZE = 1000
 
 # Neptune run
-run: neptune.Run

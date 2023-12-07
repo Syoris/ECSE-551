@@ -7,6 +7,8 @@ from typing import Dict, List, Tuple
 from tqdm.auto import tqdm
 from params import *
 import numpy as np
+import neptune
+from pathlib import Path
 
 PRINT_TRAINING = False
 
@@ -18,6 +20,7 @@ def train_model(
     optimizer: torch.optim.Optimizer,
     loss_fn: torch.nn.Module,
     epochs: int,
+    run: neptune.Run,
 ) -> Dict[str, List]:
     """To train a model for the number of epochs specified
 
@@ -39,6 +42,7 @@ def train_model(
                 val_acc: [0.3400, 0.2973]}
     """
     train_n_samples = len(train_dl.dataset)
+
     # Create empty results dictionary
     results = {
         "train_loss": [],
@@ -49,8 +53,8 @@ def train_model(
         "val_log_counter": [],
     }
 
-    # Create a writer with all default settings
-    writer = SummaryWriter()
+    # Neptune run name
+    run_name = run["sys/custom_run_id"].fetch()
 
     # Validation for random weights
     val_loss, val_acc, val_log_counter = val_step(
@@ -59,6 +63,7 @@ def train_model(
         loss_fn=loss_fn,
         epoch_num=0,
         train_n_samples=train_n_samples,
+        run=run,
     )
     results["val_loss"].append(val_loss)
     results["val_acc"].append(val_acc)
@@ -74,6 +79,7 @@ def train_model(
             loss_fn=loss_fn,
             optimizer=optimizer,
             epoch_num=epoch,
+            run=run,
         )
 
         # val
@@ -83,7 +89,17 @@ def train_model(
             loss_fn=loss_fn,
             epoch_num=epoch,
             train_n_samples=train_n_samples,
+            run=run,
         )
+        # Save model
+        try:
+            folder_path = Path(f"MP3/models/{run_name}")
+            folder_path.mkdir(parents=True, exist_ok=True)
+
+            torch.save(model.state_dict(), folder_path / "model.pth")
+            torch.save(optimizer.state_dict(), folder_path / "optimizer.pth")
+        except Exception as err:
+            print(f"Error saving model")
 
         # To results
         results["train_loss"].append(train_loss)
@@ -93,31 +109,9 @@ def train_model(
         results["val_acc"].append(val_acc)
         results["val_log_counter"].append(val_log_counter)
 
-        # To TensorBoard Writer
-        writer.add_scalars(
-            main_tag="Loss",
-            tag_scalar_dict={"train_loss": train_loss[-1], "val_loss": val_loss},
-            global_step=epoch,
-        )
-
-        # Add accuracy results to SummaryWriter
-        writer.add_scalars(
-            main_tag="Accuracy",
-            tag_scalar_dict={"train_acc": train_acc[-1], "val_acc": val_acc},
-            global_step=epoch,
-        )
-
-        # Track the PyTorch model architecture
-        writer.add_graph(
-            model=model,
-            # Pass in an example input
-            input_to_model=torch.randn(
-                TEST_BATCH_SIZE, N_CHANNEL, IMG_SIZE, IMG_SIZE
-            ).to(DEVICE),
-        )
         ...
 
-    writer.close()
+    run["final_acc"] = results["val_acc"][-1] * 100.0
 
     print(f"-----------------------------")
     print(f'Final val acc: {results["val_acc"][-1] * 100. :.2f}%')
@@ -132,6 +126,7 @@ def train_step(
     loss_fn: torch.nn.Module,
     optimizer: torch.optim.Optimizer,
     epoch_num: int,
+    run: neptune.Run,
 ) -> Tuple[List[float], List[float]]:
     """Train the model for an epoch.
 
@@ -192,17 +187,14 @@ def train_step(
             train_log_counter.append(counter_val)  # Total num of samples seen
             train_acc.append(acc)
 
+            run["training/loss"].append(value=loss.item(), step=counter_val)
+            run["training/acc"].append(value=acc, step=counter_val)
+
             # e.g. Train Epoch: 2 [8320/51000 (16%)]    Loss: 1.133699  Acc: 42.5%
             if PRINT_TRAINING:
                 print(
                     f"Train Epoch: {epoch_num} [{curr_count}/{n_samples} ({100. * batch_idx / n_batch:.0f}%){']':<5} Loss: {loss.item():<10.6f} Acc: {acc:.6f}"
                 )
-            try:
-                torch.save(model.state_dict(), f"MP3/models/model.pth")
-                torch.save(optimizer.state_dict(), f"MP3/models/optimizer.pth")
-            except Exception as err:
-                ...
-                # print(f"Error saving model")
 
     return (np.array(train_loss), np.array(train_acc), np.array(train_log_counter))
 
@@ -213,6 +205,7 @@ def val_step(
     loss_fn: torch.nn.Module,
     epoch_num: int,
     train_n_samples: int,
+    run: neptune.Run,
 ) -> Tuple[float, float, int]:
     """Performs a forward pass on the validation dataset
 
@@ -249,6 +242,11 @@ def val_step(
     val_loss /= len(dataloader)
     val_acc /= len(dataloader)
     val_log_counter = epoch_num * train_n_samples
+
+    # Add to run
+    run["val/loss"].append(value=val_loss, step=val_log_counter)
+    run["val/acc"].append(value=val_acc, step=val_log_counter)
+
     print(
         f"Validation set: Avg. Loss: {val_loss:<10.4f} Avg. Acc: {val_acc*100:.2f}%\n"
     )

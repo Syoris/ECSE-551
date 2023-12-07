@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 import pickle
 import numpy as np
 
-from utils import print_infos, show_image
+import utils
 from params import *
 
 
@@ -110,13 +110,13 @@ def create_dataloaders(
             transforms.ToTensor(),
             transforms.Resize((IMG_SIZE, IMG_SIZE)),
             transforms.Normalize(
-                [0.5], [0.5]
+                mean=(0.1571), std=(0.2676)
             ),  # transforms.Normalize((0.1307,), (0.3081,) #TODO: Find mean and var of dataset
         ]
     )
 
-    weights = torchvision.models.EfficientNet_B0_Weights.DEFAULT
-    automatic_transforms = weights.transforms()
+    # weights = torchvision.models.EfficientNet_B0_Weights.DEFAULT
+    # automatic_transforms = weights.transforms()
     # img_transform = automatic_transforms
 
     data_folder = f"MP3/data"
@@ -194,15 +194,19 @@ def create_dataloaders(
     # Print information
     if print_ds_infos:
         print(f"--- Full Train dataset ---")
-        print_infos(full_train_ds)
+        utils.print_infos(full_train_ds)
 
         print(f"--- Train dataset ---")
-        print_infos(train_ds)
+        utils.print_infos(train_ds)
 
         print(f"--- Val dataset ---")
-        print_infos(val_ds)
+        utils.print_infos(val_ds)
 
         print(f"\n--- Test dataset ---")
-        print_infos(test_ds)
+        utils.print_infos(test_ds)
+
+    # Compute mean and var
+    # utils.compute_mean_std(full_train_ds.data)
+    # utils.compute_mean_std(test_ds.data)
 
     return train_dl, val_dl, test_dl
