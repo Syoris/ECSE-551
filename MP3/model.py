@@ -4,8 +4,9 @@ To create the model
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch import flatten
 
-from typing import Literal
+from typing import Literal, List
 import torchvision
 from torchinfo import summary
 
@@ -16,11 +17,15 @@ from neptune.types import File
 
 
 def compute_img_size(in_size, filter_size, stride, padding, pooling: bool):
-    if padding == "same":
-        img_size = in_size
+    if isinstance(padding, str):
+        if padding == "same":
+            img_size = in_size
+
+        else:
+            img_size = int((in_size - filter_size) / stride + 1)
 
     else:
-        img_size = int((in_size - filter_size) / stride + 1)
+        img_size = (in_size - filter_size + 2*padding) / stride + 1
 
     if pooling:
         img_size /= 2
@@ -28,7 +33,7 @@ def compute_img_size(in_size, filter_size, stride, padding, pooling: bool):
     return int(img_size)
 
 
-class Net2(nn.Module):
+class Net(nn.Module):
     # This part defines the layers
     def __init__(self, input_size: int = 1, output_size: int = 10, dropout_prob:float =0.0):
         """Our custom CNN
@@ -136,49 +141,271 @@ class Net2(nn.Module):
 
         return F.log_softmax(x)
 
-class Net(nn.Module):
+
+class Net2(nn.Module):
     # This part defines the layers
-    def __init__(self):
-        super(Net, self).__init__()
-        # At first there is only 1 channel (greyscale). The next channel size will be 10.
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        # Then, going from channel size (or feature size) 10 to 20.
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        # Now let us create some feed foreward layers in the end. Remember the sizes (from 320 to 50)
-        self.fc1 = nn.Linear(320, 50)
-        # The last layer should have an output with the same dimension as the number of classes
-        self.fc2 = nn.Linear(50, 10)
+    def __init__(self, input_size: int = 1, output_size: int = 10, dropout_prob:float = 0.15):
+        """Our custom CNN
+
+        Args:
+            input_size (int): Number of channel of for input
+            output_size (int): Number of classes
+        """
+        super(Net2, self).__init__()
+
+        # Parameters
+        act_function = nn.ReLU()
+        final_act_function = nn.LogSoftmax()
+        dropout_rate = nn.Dropout(p=dropout_prob)
+        pool = nn.MaxPool2d(kernel_size=(2, 2))
+
+        # ------- Conv -------
+        # Conv1: 1 channel(greyscale) to 8 channnels. Kernel=5, stride=1
+        in_channels = input_size
+        out_channels = 8
+        kernel_size = 5
+        padding = "valid"  # same: With 0 padding, image is same size, valid: no padding
+        stride = 1
+        in_img_size = IMG_SIZE
+        pooling = False
+        conv1 = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            padding=padding,
+            stride=stride,
+        )
+        conv1_act = act_function
+        
+        self.conv1_seq = nn.Sequential(conv1, nn.ReLU()) 
+
+        out_img_size = compute_img_size(in_img_size, kernel_size, stride, padding, pooling)
+
+        # Conv2: 10 channels to 20 channnels. Kernel=5, stride=1
+        in_channels = out_channels
+        out_channels = 16
+        kernel_size = 5
+        padding = "valid"  # same: With 0 padding, image is same size, valid: no padding
+        stride = 1
+        in_img_size = out_img_size
+        pooling = True
+        conv2 = nn.Conv2d(in_channels, out_channels, kernel_size=5)
+        conv2_act = act_function
+        conv2_pool = pool
+
+        self.conv2_seq = nn.Sequential(conv2, nn.ReLU(), nn.MaxPool2d(kernel_size=(2, 2))) 
+
+        out_img_size = compute_img_size(in_img_size, kernel_size, stride, padding, pooling)
+
+        # Conv3
+        in_channels = out_channels
+        out_channels = 32
+        kernel_size = 5
+        padding = "valid"  # same: With 0 padding, image is same size, valid: no padding
+        stride = 1
+        in_img_size = out_img_size
+        pooling = True
+        conv3 = nn.Conv2d(in_channels, out_channels, kernel_size=5)
+        conv3_act = act_function
+        conv3_pool = pool
+
+        self.conv3_seq = nn.Sequential(conv3, nn.ReLU(), nn.MaxPool2d(kernel_size=(2, 2))) 
+
+        out_img_size = compute_img_size(in_img_size, kernel_size, stride, padding, pooling)
+
+        # # Conv forward pass
+        # self.conv_seq_2 = nn.Sequential(self.conv2, act_function, pool) 
+
+        self.conv_fw = nn.Sequential(self.conv1_seq, self.conv2_seq, self.conv3_seq)
+
+        # ------- Seq -------
+        self.fc_in_size = out_img_size**2 * out_channels  # Input size to fully connected layers
+        in_size = self.fc_in_size
+        out_size = 256
+        self.fc1 = nn.Linear(in_size, out_size)
+        self.fc1_act = act_function
+        self.fc1_drop = dropout_rate
+        self.fc1_seq = nn.Sequential(self.fc1, nn.ReLU(), nn.Dropout(p=dropout_prob))
+
+        in_size = out_size
+        out_size = 64
+        fc2 = nn.Linear(in_size, out_size)
+        fc2_act = act_function
+        fc2_drop = dropout_rate
+        self.fc2_seq = nn.Sequential(fc2, nn.ReLU(), nn.Dropout(p=dropout_prob))
+
+        # The last layer size the same as the num of classes
+        in_size = out_size
+        out_size = output_size
+        fc3 = nn.Linear(in_size , out_size)
+        fc3_act = final_act_function
+        self.fc3_seq = nn.Sequential(fc3, nn.LogSoftmax())
+
+
+        # # Seq forward pass
+        self.fc_fw = nn.Sequential(self.fc1_seq, self.fc2_seq, self.fc3_seq)
 
     # And this part defines the way they are connected to each other
-    # (In reality, it is our foreward pass)
+    # (In reality, it is our forward pass)
     def forward(self, x):
+        # ----- Conv -----
+        out = self.conv_fw(x)
+
+        # ----- Fully Connected -----
+        # Imaginary layer
+        out = out.view(-1, self.fc_in_size)
+
+        out = self.fc_fw(out)
+
+        return x
 
 
-        # F.relu is ReLU activation. F.max_pool2d is a max pooling layer with n=2
-        # Max pooling simply selects the maximum value of each square of size n. Effectively dividing the image size by n
-        # At first, x is out input, so it is 1x28x28
-        # After the first convolution, it is 10x24x24 (24=28-5+1, 10 comes from feature size)
-        # After max pooling, it is 10x12x12
-        # ReLU doesn't change the size
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+class VGG11(nn.Module):
+    # This part defines the layers
+    def __init__(self, input_size: int = 1, n_classes: int = 10, dropout_prob:float = 0.15):
+        """Our implementation of VGG16
+        """
+        super(VGG11, self).__init__()
 
-        # Again, after convolution layer, size is 20x8x8 (8=12-5+1, 20 comes from feature size)
-        # After max pooling it becomes 20x4x4
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
+        # Parameters
+        act_function = nn.ReLU()
+        final_act_function = nn.LogSoftmax()
+        dropout_rate = nn.Dropout(p=dropout_prob)
+        pool = nn.MaxPool2d(kernel_size=(2, 2))
 
-        # This layer is an imaginary one. It simply states that we should see each member of x
-        # as a vector of 320 elements, instead of a tensor of 20x4x4 (Notice that 20*4*4=320)
-        x = x.view(-1, 320)
+        # ------- Conv -------
+        conv_layers_list = [64, "M", 128, "M", 256, 256]
+        layers: List[nn.Module] = []
+        in_channels = 1
 
-        # Feedforeward layers. Remember that fc1 is a layer that goes from 320 to 50 neurons
-        x = F.relu(self.fc1(x))
+        for layer in conv_layers_list:
+            if layer == 'M':
+                layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            else:
+                out_channels = int(layer)
+                conv2d = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
+                layers += [conv2d, nn.ReLU(inplace=True)]
+                in_channels = out_channels
 
-        # Output layer
-        x = self.fc2(x)
+        self.conv_fw = nn.Sequential(*layers)
 
-        # We should put an appropriate activation for the output layer.
-        return F.log_softmax(x)
-    
+        # --- Avg Pool ---
+        self.avgpool = nn.AdaptiveAvgPool2d((7, 7))
+
+        # ------- FC -------
+        fc1 = nn.Linear(256 * 7 * 7, 4096)
+        fc2 = nn.Linear(4096, 2048)
+        fc3 = nn.Linear(2048, n_classes)
+
+        self.fc_fw = nn.Sequential(
+            fc1,
+            nn.ReLU(True),
+            nn.Dropout(p=dropout_prob),
+            fc2,
+            nn.ReLU(True),
+            nn.Dropout(p=dropout_prob),
+            fc3,
+            nn.LogSoftmax()
+        )
+
+    # And this part defines the way they are connected to each other
+    # (In reality, it is our forward pass)
+    def forward(self, x):
+        # ----- Conv -----
+        out = self.conv_fw(x)
+        out = self.avgpool(out)
+
+        # ----- Fully Connected -----
+        # Imaginary layer
+        # out = out.view(-1, self.fc_in_size)
+        out = flatten(out, 1)
+
+        out = self.fc_fw(out)
+
+        return out
+
+
+class LeNet5(nn.Module):
+    # This part defines the layers
+    def __init__(self, input_size: int = 1, n_classes: int = 10, dropout_prob:float = 0.15):
+        """Our implementation of VGG16
+        """
+        super(LeNet5, self).__init__()
+
+        # ------- Conv -------
+        conv_layers_list = [
+            {'type': 'conv', 'out_ch': 6, 'act': nn.Tanh(), 'f': 5, 's': 1, 'p':'valid'},
+            {'type': 'max', 'f': 2},
+            {'type': 'conv', 'out_ch': 16, 'act': nn.Tanh(), 'f': 5, 's': 1, 'p':'valid'},
+            {'type': 'max', 'f': 2},
+        ]
+        layers: List[nn.Module] = []
+        in_channels = 1
+
+        for layer in conv_layers_list:
+            if layer['type'] == 'avg':
+                act_fn = layer['act']
+            
+                kernel_size = layer['f']
+                stride = layer['s']
+                padding = layer['p']
+
+                avgPool = nn.AvgPool2d(kernel_size=kernel_size, padding=padding, stride=stride)
+                layers += [avgPool, act_fn]
+            
+            if layer['type'] == 'max':
+                kernel_size = layer['f']
+
+                avgPool = nn.MaxPool2d(kernel_size=kernel_size)
+                layers += [avgPool]
+
+            elif layer['type'] == 'conv':
+                out_channels = int(layer['out_ch'])
+                act_fn = layer['act']
+                kernel_size = layer['f']
+                stride = layer['s']
+                padding = layer['p']
+                conv2d = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, stride=stride)
+                layers += [conv2d, act_fn]
+                in_channels = out_channels
+
+        self.conv_fw = nn.Sequential(*layers)
+
+        # --- Avg Pool ---
+        ...
+
+        # ------- FC -------
+        fc1 = nn.Linear(400, 120)
+        fc2 = nn.Linear(120, 84)
+        fc3 = nn.Linear(84, n_classes)
+
+        self.fc_fw = nn.Sequential(
+            fc1,
+            nn.ReLU(True),
+            # nn.Dropout(p=dropout_prob),
+            fc2,
+            nn.ReLU(True),
+            # nn.Dropout(p=dropout_prob),
+            fc3,
+            nn.LogSoftmax()
+        )
+
+    # And this part defines the way they are connected to each other
+    # (In reality, it is our forward pass)
+    def forward(self, x):
+        # ----- Conv -----
+        out = self.conv_fw(x)
+
+        # ----- Fully Connected -----
+        # Imaginary layer
+        # out = out.view(-1, self.fc_in_size)
+        out = flatten(out, 1)
+
+        out = self.fc_fw(out)
+
+        return out
+
+
 def get_efficientnet_b0():
     weights = (
         torchvision.models.EfficientNet_B0_Weights.DEFAULT
@@ -202,21 +429,31 @@ def get_efficientnet_b0():
 
 def get_my_net():
     set_seed()
-    model = Net()
+    model = Net2()
 
     return model
 
 
-def get_model(model_type: Literal["net"], neptune_run: neptune.Run):
-    # model = get_efficientnet_b0()
-    if model_type == "net":
+def get_model(model_type: Literal["MyNet", "VGG11"], neptune_run: neptune.Run):
+    print(f'Loading model...')
+    model = None
+    set_seed()
+    if model_type == "MyNet":
         model = get_my_net()
 
-    # summary(model)
+    elif model_type == "VGG11":
+        model = VGG11()
+
+    elif model_type == 'LeNet5':
+        model = LeNet5()
+
+    else:
+        raise ValueError(f"Invalid model type: {model_type}")
+    
     model_info = summary(
         model,
         input_size=(
-            TRAIN_BATCH_SIZE,
+            1,
             N_CHANNEL,
             IMG_SIZE,
             IMG_SIZE,

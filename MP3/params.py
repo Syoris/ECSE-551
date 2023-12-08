@@ -12,10 +12,10 @@ NEPTUNE_API = "eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsI
 
 # Images
 N_CHANNEL = 1
-IMG_SIZE = 64
+IMG_SIZE = 32
 
 # Hyperparameters
-N_EPOCHS = 1
+N_EPOCHS = 10
 LR = 0.01
 MOMENTUM = 0.5
 

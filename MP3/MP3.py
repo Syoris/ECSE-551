@@ -34,7 +34,8 @@ def train_models():
     print(f"------- Training models -------")
 
     # --- Setup Run ---
-    model_name = "MyNet"
+    model_name = "LeNet5"
+
     run_name = utils.get_run_name(model_name)
     print(f"Model: {model_name}\t Neptune run: {run_name}")
     run = neptune.init_run(
@@ -46,7 +47,7 @@ def train_models():
 
     # ---- Load Data ---
     train_dl, val_dl, test_dl = create_dataloaders(
-        TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, print_ds_infos=True, neptune_run=run
+        TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, print_ds_infos=False, neptune_run=run
     )
 
     # --- Train Model ---
@@ -61,7 +62,7 @@ def train_models():
     }
     run["parameters"] = hyperparameters
 
-    model = get_model(model_type="net", neptune_run=run)
+    model = get_model(model_type=model_name, neptune_run=run)
 
     optimizer = get_optimizer(model, type="Adam")
 

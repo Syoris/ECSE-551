@@ -186,8 +186,8 @@ def train_step(
             train_log_counter.append(counter_val)  # Total num of samples seen
             train_acc.append(acc)
 
-            run["training/loss"].append(value=loss.item(), step=counter_val)
-            run["training/acc"].append(value=acc, step=counter_val)
+            run["training/loss"].append(value=loss.item(), step=counter_val/n_samples)
+            run["training/acc"].append(value=acc, step=counter_val/n_samples)
 
             # e.g. Train Epoch: 2 [8320/51000 (16%)]    Loss: 1.133699  Acc: 42.5%
             if PRINT_TRAINING:
@@ -243,8 +243,8 @@ def val_step(
     val_log_counter = epoch_num * train_n_samples
 
     # Add to run
-    run["val/loss"].append(value=val_loss, step=val_log_counter)
-    run["val/acc"].append(value=val_acc, step=val_log_counter)
+    run["val/loss"].append(value=val_loss, step=epoch_num)
+    run["val/acc"].append(value=val_acc, step=epoch_num)
 
     print(
         f"Validation set: Avg. Loss: {val_loss:<10.4f} Avg. Acc: {val_acc*100:.2f}%\n"
