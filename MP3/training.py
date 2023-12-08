@@ -69,7 +69,7 @@ def train_model(
     results["val_log_counter"].append(val_log_counter)
 
     for epoch in range(1, epochs + 1):
-        print(f"####### Epoch {epoch} #######")
+        print(f"####### Epoch {epoch}/{epochs} #######")
 
         # train
         train_loss, train_acc, train_log_counter = train_step(

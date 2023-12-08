@@ -11,13 +11,8 @@ from pathlib import Path
 
 import pickle
 import matplotlib.pyplot as plt
-from torchvision import transforms
-from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
-from PIL import Image
 import torch
-from torch.utils.data import DataLoader, Subset
-from sklearn.model_selection import train_test_split
+import torch.nn as nn
 
 # My functions
 from data_loader import create_dataloaders
@@ -30,12 +25,32 @@ import neptune
 torch.backends.cudnn.enabled = False
 
 
+
 def train_models():
     print(f"------- Training models -------")
+    # --- Hyperparameters ---
+    # Datasets
+    train_batch_size = 64
+    test_batch_size = 64
+    img_size = 32
+
+    # Model
+    model_name = 'VGG13'
+
+    act_fn = 'ReLu'
+    dropout_prob = 0.15
+
+    # Optim
+    n_epochs = 50
+    optimizer = 'Adam'
+    lr = 0.001
+    momentum = 0.5
+
+    # Loss
+    loss_fn = 'cross_entropy'  # 'cross_entropy', 'nll'
+
 
     # --- Setup Run ---
-    model_name = "LeNet5"
-
     run_name = utils.get_run_name(model_name)
     print(f"Model: {model_name}\t Neptune run: {run_name}")
     run = neptune.init_run(
@@ -44,31 +59,41 @@ def train_models():
         custom_run_id=run_name,
         source_files=["MP3/*.py"],
     )
-
-    # ---- Load Data ---
-    train_dl, val_dl, test_dl = create_dataloaders(
-        TRAIN_BATCH_SIZE, TEST_BATCH_SIZE, print_ds_infos=False, neptune_run=run
-    )
-
-    # --- Train Model ---
+    
+    # Log hyperparameters
     hyperparameters = {
         "seed": SEED,
-        "img_size": IMG_SIZE,
-        "n_epoch": N_EPOCHS,
-        "lr": LR,
-        "momentum": MOMENTUM,
-        "train_batch_size": TRAIN_BATCH_SIZE,
-        "test_batch_size": TEST_BATCH_SIZE,
+        # Dataset
+        "img_size": img_size,
+        "train_batch_size": train_batch_size,
+        "test_batch_size": test_batch_size,
+        # Model
+        'model_name': model_name,
+        'act_fn': act_fn,
+        'dropout_prob': dropout_prob,
+        # Optim
+        'optimizer': optimizer,
+        "n_epoch": n_epochs,
+        "lr": lr,
+        "momentum": momentum,
+        # Loss
+        "loss_fn": loss_fn
     }
     run["parameters"] = hyperparameters
 
-    model = get_model(model_type=model_name, neptune_run=run)
+    # ---- Load Data ---
+    train_dl, val_dl, test_dl = create_dataloaders(
+        img_size, train_batch_size, test_batch_size, print_ds_infos=False, neptune_run=run
+    )
+
+    # --- Train Model ---
+    model = get_model(model_type=model_name, neptune_run=run, act_fn=act_fn, dropout_prob=dropout_prob, img_size=img_size)
 
     optimizer = get_optimizer(model, type="Adam")
 
-    loss_fn = get_loss_fn()
+    loss_fn = get_loss_fn(loss_fn)
 
-    results = train_model(model, train_dl, val_dl, optimizer, loss_fn, N_EPOCHS, run)
+    results = train_model(model, train_dl, val_dl, optimizer, loss_fn, n_epochs, run)
 
     run.stop()
 

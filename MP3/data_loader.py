@@ -17,7 +17,6 @@ import utils
 from params import *
 import neptune
 
-NUM_WORKERS = 0  # os.cpu_count()
 
 
 def show_image(img, vmin=0, vmax=1, ax=None):
@@ -116,8 +115,9 @@ class MyDataset(Dataset):
 
 
 def create_dataloaders(
-    train_batch_size: int,
-    test_batch_size: int,
+    img_size: int = 28,
+    train_batch_size: int = 64,
+    test_batch_size: int = 1000,
     num_workers: int = NUM_WORKERS,
     print_ds_infos: bool = False,
     plot_images: bool = False,
@@ -125,32 +125,18 @@ def create_dataloaders(
 ):
     print("Creating datasets...")
     # Load the dataset
-    mean = 0.5 #  0.1571
-    std = 0.5 #  0.2676
+    mean = 0.5 # 0.1571
+    std = 0.5 # 0.2676
     neptune_run['dataset/mean'] = mean
     neptune_run['dataset/std'] = std
     img_transform = transforms.Compose(
         [
             transforms.ToTensor(),
             transforms.Normalize(mean=(mean), std=(std)),
-            transforms.Resize((IMG_SIZE, IMG_SIZE)),
-            # transforms.RandomRotation(10),
+            transforms.Resize((img_size, img_size)),
+            transforms.RandomRotation(10),
         ]
     )
-
-    # img_transform = transforms.Compose(
-    #     [
-    #         transforms.ToTensor(),
-    #         transforms.Resize((IMG_SIZE, IMG_SIZE)),
-    #         transforms.Normalize(
-    #             [0.1571], [0.2676]
-    #         ),  # transforms.Normalize((0.1307,), (0.3081,) #TODO: Find mean and var of dataset
-    #     ]
-    # )
-
-    # weights = torchvision.models.EfficientNet_B0_Weights.DEFAULT
-    # automatic_transforms = weights.transforms()
-    # img_transform = automatic_transforms
 
     data_folder = f"MP3/data"
 

@@ -174,5 +174,6 @@ scores.csv
 
 # large files
 MP3/data/*
+MP3/models/*
 Tutorials/data/*
 .neptune/*

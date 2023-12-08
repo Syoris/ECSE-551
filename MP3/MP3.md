@@ -18,9 +18,9 @@ TODO:
 
 
 ### Models
-- [VGG Implementation](https://pytorch.org/vision/stable/_modules/torchvision/models/vgg.html#vgg16_bn)
+- [VGG Implementation](https://pytorch.org/vision/stable/_modules/torchvision/models/vgg.html)
 - [VGG Paper](https://arxiv.org/pdf/1409.1556.pdf)
-- [Models Paper](file:///C:/Users/charl/Downloads/SLRProp_A_Back-Propagation_Variant_of_Sparse_Low_R.pdf)
+- [Models Paper](https://www.researchgate.net/publication/368974793_SLRProp_A_Back-Propagation_Variant_of_Sparse_Low_Rank_Method_for_DNNs_Reduction)
 - 
 
 
