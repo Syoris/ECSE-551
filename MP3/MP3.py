@@ -85,7 +85,9 @@ def train_models():
     )
 
     # --- Train Model ---
-    model = get_model(model_type=model_name, act_fn=act_fn, dropout_prob=dropout_prob)
+    model = get_model(
+        model_type=model_name, act_fn=act_fn, dropout_prob=dropout_prob, img_size=img_size
+    )
     log_model_info(model, img_size, run)
 
     optimizer = get_optimizer(model, type=optimizer_type, lr=lr, momentum=momentum)
@@ -146,7 +148,9 @@ def load_run(
     loss_fn = model_params["loss_fn"]
 
     # --- Model ---
-    model = get_model(model_type=model_type, act_fn=act_fn, dropout_prob=dropout_prob)
+    model = get_model(
+        model_type=model_type, act_fn=act_fn, dropout_prob=dropout_prob, img_size=img_size
+    )
     if not retrain:
         weights_path = Path("MP3/models") / model_id / "model.pth"
         model.load_state_dict(torch.load(weights_path))
@@ -223,6 +227,6 @@ if __name__ == "__main__":
 
     # # Add test acc to neptune
     # run_id = "MP3-69"
-    # test_acc = 0.90300
+    # test_acc = 0.89666
     # add_test_acc(run_id, test_acc)
-    ...
+    # ...

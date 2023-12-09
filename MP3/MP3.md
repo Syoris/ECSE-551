@@ -15,6 +15,7 @@ TODO:
   - Img size
   - Models
   - dropout
+  - batch size
 
 
 ## Resources
