@@ -80,14 +80,20 @@ def make_conv_layers(layers_list, act_fn, use_batch_norm: bool = False) -> List[
 
 class MyNet(nn.Module):
     # This part defines the layers
-    def __init__(self, input_size: int = 1, output_size: int = 10, dropout_prob: float = 0.15):
+    def __init__(
+        self,
+        input_size: int = 1,
+        output_size: int = 10,
+        dropout_prob: float = 0.15,
+        img_size: int = 32,
+    ):
         """Our custom CNN
 
         Args:
             input_size (int): Number of channel of for input
             output_size (int): Number of classes
         """
-        super(Net2, self).__init__()
+        super(MyNet, self).__init__()
 
         # Parameters
         act_function = nn.ReLU()
@@ -197,7 +203,13 @@ class MyNet(nn.Module):
 
 class VGG11(nn.Module):
     # This part defines the layers
-    def __init__(self, input_size: int = 1, n_classes: int = 10, dropout_prob: float = 0.15):
+    def __init__(
+        self,
+        input_size: int = 1,
+        n_classes: int = 10,
+        dropout_prob: float = 0.15,
+        img_size: int = 32,
+    ):
         """Our implementation of VGG16"""
         super(VGG11, self).__init__()
 
@@ -262,10 +274,21 @@ class VGG11(nn.Module):
 class VGG13(nn.Module):
     # This part defines the layers
     def __init__(
-        self, n_classes: int = 10, dropout_prob: float = 0.15, act_fn: nn.Module = nn.ReLU()
+        self,
+        n_classes: int = 10,
+        dropout_prob: float = 0.15,
+        act_fn: nn.Module = nn.ReLU(),
+        img_size: int = 32,
     ):
         """Our implementation of VGG16"""
         super(VGG13, self).__init__()
+
+        if img_size == 32:
+            end_size = 1
+        elif img_size == 64:
+            end_size = 2
+        else:
+            raise RuntimeError(f"Invalid image size: {img_size} for VGG16 class")
 
         # ------- Conv -------
         # # input: 32x32
@@ -295,7 +318,7 @@ class VGG13(nn.Module):
         ...
 
         # ------- FC -------
-        fc1 = nn.Linear(1 * 1 * 512, 4096)
+        fc1 = nn.Linear(end_size * end_size * 512, 4096)
         fc2 = nn.Linear(4096, 4096)
         fc3 = nn.Linear(4096, n_classes)
 
@@ -323,73 +346,6 @@ class VGG13(nn.Module):
 
 
 class VGG16(nn.Module):
-    # This part defines the layers
-    def __init__(
-        self, n_classes: int = 10, dropout_prob: float = 0.15, act_fn: nn.Module = nn.ReLU()
-    ):
-        """Our implementation of VGG16"""
-        super(VGG16, self).__init__()
-
-        # ------- Conv -------
-        # # input: 32x32
-        # VGG16:  [64, 64, "M", 128, 128, "M", 256, 256, 256, "M", 512, 512, 512, "M", 512, 512, 512, "M"]
-        conv_layers_list = [
-            {'type': 'conv', 'out_ch': 64, 'f': 3, 's': 1, 'p': 1},  # to 32 x 32 x 64
-            {'type': 'conv', 'out_ch': 64, 'f': 3, 's': 1, 'p': 1},  # to 32 x 32 x 64
-            {'type': 'max_pool', 'f': 2},  # to 16 x 16 x 64
-            {'type': 'conv', 'out_ch': 128, 'f': 3, 's': 1, 'p': 1},  # to 16 x 16 x 128
-            {'type': 'conv', 'out_ch': 128, 'f': 3, 's': 1, 'p': 1},  # to 16 x 16 x 128
-            {'type': 'max_pool', 'f': 2},  # to 8  x 8  x 128
-            {'type': 'conv', 'out_ch': 256, 'f': 3, 's': 1, 'p': 1},  # to 8  x 8  x 256
-            {'type': 'conv', 'out_ch': 256, 'f': 3, 's': 1, 'p': 1},  # to 8  x 8  x 256
-            {'type': 'conv', 'out_ch': 256, 'f': 3, 's': 1, 'p': 1},  # to 8  x 8  x 256
-            {'type': 'max_pool', 'f': 2},  # to 4  x 4  x 256
-            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 4  x 4  x 512
-            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 4  x 4  x 512
-            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 4  x 4  x 512
-            {'type': 'max_pool', 'f': 2},  # to 2  x 2  x 512
-            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 2  x 2  x 512
-            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 2  x 2  x 512
-            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 2  x 2  x 512
-            {'type': 'max_pool', 'f': 2},  # to 1  x 1  x 512
-        ]
-
-        layers = make_conv_layers(conv_layers_list, act_fn, use_batch_norm=True)
-        self.conv_fw = nn.Sequential(*layers)
-
-        # ------- FC -------
-        fc1 = nn.Linear(1 * 1 * 512, 4096)
-        fc2 = nn.Linear(4096, 4096)
-        fc3 = nn.Linear(4096, n_classes)
-
-        self.fc_fw = nn.Sequential(
-            fc1,
-            nn.ReLU(),
-            nn.Dropout(p=dropout_prob),
-            fc2,
-            nn.ReLU(),
-            nn.Dropout(p=dropout_prob),
-            fc3,
-            nn.LogSoftmax(),
-        )
-
-    # And this part defines the way they are connected to each other
-    # (In reality, it is our forward pass)
-    def forward(self, x):
-        # ----- Conv -----
-        out = self.conv_fw(x)
-
-        # ----- Fully Connected -----
-        # Imaginary layer
-        # out = out.view(-1, self.fc_in_size)
-        out = flatten(out, 1)
-
-        out = self.fc_fw(out)
-
-        return out
-
-
-class VGG16_64(nn.Module):
     # This part defines the layers
     def __init__(
         self,
@@ -470,7 +426,11 @@ class VGG16_64(nn.Module):
 class LeNet5(nn.Module):
     # This part defines the layers
     def __init__(
-        self, n_classes: int = 10, dropout_prob: float = 0.15, act_fn: nn.Module = nn.ReLU()
+        self,
+        n_classes: int = 10,
+        dropout_prob: float = 0.15,
+        act_fn: nn.Module = nn.ReLU(),
+        img_size: int = 32,
     ):
         """Our implementation of VGG16"""
         super(LeNet5, self).__init__()
@@ -574,7 +534,7 @@ def log_model_info(model, img_size, neptune_run: neptune.Run):
 
 
 def get_optimizer(
-    network: Net,
+    network: nn.Module,
     type: Literal["SGD", "Adam"] = "SGD",
     lr: float = 0.01,
     momentum: float = 0.5,

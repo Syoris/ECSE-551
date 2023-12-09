@@ -31,7 +31,7 @@ def train_models():
     # Datasets
     train_batch_size = 64
     test_batch_size = 64
-    img_size = 32
+    img_size = 64
 
     # Model
     model_name = "VGG13"

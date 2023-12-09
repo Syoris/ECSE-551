@@ -125,8 +125,8 @@ def create_dataloaders(
 ):
     print("Creating datasets...")
     # Load the dataset
-    mean = 0.5  # 0.1571
-    std = 0.5  # 0.2676
+    mean = 0.1571
+    std = 0.2676
     if neptune_run is not None:
         neptune_run['dataset/mean'] = mean
         neptune_run['dataset/std'] = std
@@ -145,7 +145,7 @@ def create_dataloaders(
     train_file = "Train.pkl"
     train_label_file = "Train_labels.csv"
     test_file = "Test.pkl"
-    val_size = 0.15
+    val_size = 0.2
 
     # Datasets
     no_transform_ds = MyDataset(
