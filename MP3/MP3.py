@@ -34,13 +34,13 @@ def train_models():
     img_size = 32
 
     # Model
-    model_name = "VGG16"
+    model_name = "VGG13"
 
     act_fn = "ReLu"
     dropout_prob = 0.15
 
     # Optim
-    n_epochs = 50
+    n_epochs = 10
     optimizer_type = "Adam"
     lr = 0.001
     momentum = 0.5
@@ -70,7 +70,7 @@ def train_models():
         "act_fn": act_fn,
         "dropout_prob": dropout_prob,
         # Optim
-        "optimizer": optimizer,
+        "optimizer": optimizer_type,
         "n_epoch": n_epochs,
         "lr": lr,
         "momentum": momentum,
@@ -80,7 +80,7 @@ def train_models():
     run["parameters"] = hyperparameters
 
     # ---- Load Data ---
-    train_dl, val_dl, _, _ = create_dataloaders(
+    train_dl, val_dl, _, full_train_dl = create_dataloaders(
         img_size, train_batch_size, test_batch_size, print_ds_infos=False, neptune_run=run
     )
 
@@ -179,14 +179,16 @@ def test_model(run_id, retrain=True):
     ) = load_run(run_id, retrain=retrain)
 
     if retrain:
-        model_id = model_id + '_Full'
-        run = neptune.init_run(
+        model_id += '_Full'
+        print(f'Starting new training: {model_id}')
+        train_run = neptune.init_run(
             project="MyResearch/ECSE551-MP3",
             api_token=NEPTUNE_API,
             custom_run_id=model_id,
             source_files=["MP3/*.py"],
         )
-        train_model(model, full_train_dl, val_dl, optimizer, loss_fn, n_epochs, run)
+        train_model(model, full_train_dl, val_dl, optimizer, loss_fn, n_epochs, train_run)
+        train_run.stop()
 
     y_test = predict(model, test_dl)
 
@@ -213,13 +215,14 @@ def add_test_acc(run_id, test_acc: float):
 
 
 if __name__ == "__main__":
-    # train_models()
+    train_models()
 
-    run_id = "MP3-66"
-    test_model(run_id)
+    # run_id = "MP3-66"
+    # n_epochs = 10
+    # test_model(run_id, n_epochs)
 
     # # Add test acc to neptune
-    # run_id = "MP3-66"
+    # run_id = "MP3-69"
     # test_acc = 0.90300
     # add_test_acc(run_id, test_acc)
     ...
