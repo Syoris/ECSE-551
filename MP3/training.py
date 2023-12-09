@@ -177,17 +177,15 @@ def train_step(
             n_samples = len(dataloader.dataset)
             n_batch = len(dataloader)
             prev_count = (epoch_num - 1) * n_samples  # Total count from prev epochs
-            curr_count = (
-                batch_idx * TRAIN_BATCH_SIZE
-            )  # Num of samples seen for current epoch
+            curr_count = batch_idx * X.shape[0]  # Num of samples seen for current epoch
             counter_val = curr_count + prev_count  # Total of sample seen
 
             train_loss.append(loss.item())
             train_log_counter.append(counter_val)  # Total num of samples seen
             train_acc.append(acc)
 
-            run["training/loss"].append(value=loss.item(), step=counter_val/n_samples)
-            run["training/acc"].append(value=acc, step=counter_val/n_samples)
+            run["training/loss"].append(value=loss.item(), step=counter_val / n_samples)
+            run["training/acc"].append(value=acc, step=counter_val / n_samples)
 
             # e.g. Train Epoch: 2 [8320/51000 (16%)]    Loss: 1.133699  Acc: 42.5%
             if PRINT_TRAINING:
@@ -246,8 +244,36 @@ def val_step(
     run["val/loss"].append(value=val_loss, step=epoch_num)
     run["val/acc"].append(value=val_acc, step=epoch_num)
 
-    print(
-        f"Validation set: Avg. Loss: {val_loss:<10.4f} Avg. Acc: {val_acc*100:.2f}%\n"
-    )
+    print(f"Validation set: Avg. Loss: {val_loss:<10.4f} Avg. Acc: {val_acc*100:.2f}%\n")
 
     return (np.array(val_loss), np.array(val_acc), np.array(val_log_counter))
+
+
+def predict(
+    model: torch.nn.Module,
+    test_dl: torch.utils.data.DataLoader,
+) -> List:
+    """To predict the class over the whole dataset
+
+    Args:
+        model (torch.nn.Module): Model
+        dataloader (torch.utils.data.DataLoader): Test dataloader
+
+    Returns:
+        List: Predictions
+    """
+    model.eval()
+    y_test = []
+    with torch.no_grad():
+        for X in test_dl:
+            # Send data to device
+            X = X.to(DEVICE)
+
+            # 1. Forward pass
+            val_pred = model(X)
+
+            # 2. Labels
+            pred_labels = val_pred.argmax(dim=1)
+            y_test.extend(pred_labels.tolist())
+
+    return y_test

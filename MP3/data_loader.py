@@ -18,7 +18,6 @@ from params import *
 import neptune
 
 
-
 def show_image(img, vmin=0, vmax=1, ax=None):
     """To show the image
 
@@ -28,10 +27,10 @@ def show_image(img, vmin=0, vmax=1, ax=None):
         vmax (int, optional): Max value of the scale. Defaults to 1.
     """
     # plt.imshow(img.cpu().numpy(), cmap='gray', vmin=vmin, vmax=vmax)
-    
+
     if ax is not None:
         ax.imshow(img[0], cmap='gray', vmin=vmin, vmax=vmax)
-        
+
     else:
         plt.imshow(img[0], cmap='gray', vmin=vmin, vmax=vmax)
 
@@ -76,9 +75,7 @@ class MyDataset(Dataset):
         if label_file_name is not None:
             label_file = f"{folder_path}/{label_file_name}"
 
-            self.targets = np.genfromtxt(label_file, delimiter=",", skip_header=1)[
-                :, 1:
-            ]
+            self.targets = np.genfromtxt(label_file, delimiter=",", skip_header=1)[:, 1:]
 
         else:
             self.targets = None
@@ -97,11 +94,8 @@ class MyDataset(Dataset):
         return l
 
     def __getitem__(self, index):
+        # Image
         img = self.data[index]
-        if self.targets is None:
-            target = None
-        else:
-            target = int(self.targets[index])
 
         if self.transform is not None:
             # img = Image.fromarray(img.astype('float'), mode='L')
@@ -111,7 +105,13 @@ class MyDataset(Dataset):
         else:
             img_trans = transforms.ToTensor()(img)
 
-        return img_trans, target
+        # Target
+        if self.targets is None:
+            return img_trans
+
+        else:
+            target = int(self.targets[index])
+            return img_trans, target
 
 
 def create_dataloaders(
@@ -125,10 +125,12 @@ def create_dataloaders(
 ):
     print("Creating datasets...")
     # Load the dataset
-    mean = 0.5 # 0.1571
-    std = 0.5 # 0.2676
-    neptune_run['dataset/mean'] = mean
-    neptune_run['dataset/std'] = std
+    mean = 0.5  # 0.1571
+    std = 0.5  # 0.2676
+    if neptune_run is not None:
+        neptune_run['dataset/mean'] = mean
+        neptune_run['dataset/std'] = std
+
     img_transform = transforms.Compose(
         [
             transforms.ToTensor(),
@@ -189,6 +191,14 @@ def create_dataloaders(
 
     # Dataloaders
     print("Creating dataloaders...")
+    full_train_dl = DataLoader(
+        full_train_ds,
+        batch_size=train_batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
+
     train_dl = DataLoader(
         train_ds,
         batch_size=train_batch_size,
@@ -251,11 +261,11 @@ def create_dataloaders(
     if plot_images:
         plt.show(block=False)
 
-    neptune_run['dataset/transform_comp'].upload(fig)
-
+    if neptune_run is not None:
+        neptune_run['dataset/transform_comp'].upload(fig)
 
     # Compute mean and var
     # utils.compute_mean_std(full_train_ds.data)
     # utils.compute_mean_std(test_ds.data)
 
-    return train_dl, val_dl, test_dl
+    return train_dl, val_dl, test_dl, full_train_dl

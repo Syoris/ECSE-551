@@ -2,9 +2,19 @@
 
 TODO:
 
-- Save net, optimizer and lists?
-- Print images before and after transform
-- Load model from neptune, train on whole ds and predict
+- Load model
+  - Continue training
+  - Plots?
+  - Train on whole ds
+  - Predict
+
+
+- Experiments
+  - Loss function
+  - Optimizer (and its params)
+  - Img size
+  - Models
+  - dropout
 
 
 ## Resources

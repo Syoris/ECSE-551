@@ -31,7 +31,7 @@ def compute_img_size(in_size, filter_size, stride, padding, pooling: bool):
             img_size = int((in_size - filter_size) / stride + 1)
 
     else:
-        img_size = (in_size - filter_size + 2*padding) / stride + 1
+        img_size = (in_size - filter_size + 2 * padding) / stride + 1
 
     if pooling:
         img_size /= 2
@@ -39,21 +39,21 @@ def compute_img_size(in_size, filter_size, stride, padding, pooling: bool):
     return int(img_size)
 
 
-def make_conv_layers(layers_list, act_fn, use_batch_norm:bool=False) -> List[nn.Module]:
+def make_conv_layers(layers_list, act_fn, use_batch_norm: bool = False) -> List[nn.Module]:
     layers: List[nn.Module] = []
     in_channels = 1
 
     for layer in layers_list:
         if layer['type'] == 'avg':
             act_fn = layer['act']
-        
+
             kernel_size = layer['f']
             stride = layer['s']
             padding = layer['p']
 
             avgPool = nn.AvgPool2d(kernel_size=kernel_size, padding=padding, stride=stride)
             layers += [avgPool, act_fn]
-        
+
         if layer['type'] == 'max_pool':
             kernel_size = layer['f']
 
@@ -65,7 +65,9 @@ def make_conv_layers(layers_list, act_fn, use_batch_norm:bool=False) -> List[nn.
             kernel_size = layer['f']
             stride = layer['s']
             padding = layer['p']
-            conv2d = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, stride=stride)
+            conv2d = nn.Conv2d(
+                in_channels, out_channels, kernel_size=kernel_size, padding=padding, stride=stride
+            )
             if use_batch_norm:
                 layers += [conv2d, nn.BatchNorm2d(out_channels), act_fn]
             else:
@@ -78,7 +80,7 @@ def make_conv_layers(layers_list, act_fn, use_batch_norm:bool=False) -> List[nn.
 
 class Net(nn.Module):
     # This part defines the layers
-    def __init__(self, input_size: int = 1, output_size: int = 10, dropout_prob:float =0.0):
+    def __init__(self, input_size: int = 1, output_size: int = 10, dropout_prob: float = 0.0):
         """Our custom CNN
 
         Args:
@@ -129,8 +131,8 @@ class Net(nn.Module):
         out_img_size = compute_img_size(in_img_size, kernel_size, stride, padding, pooling)
 
         # # Conv forward pass
-        # self.conv_seq_1 = nn.Sequential(self.conv1, act_function, pool) 
-        # self.conv_seq_2 = nn.Sequential(self.conv2, act_function, pool) 
+        # self.conv_seq_1 = nn.Sequential(self.conv1, act_function, pool)
+        # self.conv_seq_2 = nn.Sequential(self.conv2, act_function, pool)
 
         # self.conv_fw = nn.Sequential(self.conv_seq_1, self.conv_seq_2)
 
@@ -147,7 +149,7 @@ class Net(nn.Module):
         # # Seq forward pass
         # self.fc_seq_1 = nn.Sequential(self.fc1, act_function, dropout_rate)
         # self.fc_seq_2 = nn.Sequential(self.fc2, dropout_rate, final_act_function)
-        
+
         # self.fc_fw = nn.Sequential(self.fc_seq_1, self.fc_seq_2)
 
     # And this part defines the way they are connected to each other
@@ -178,7 +180,6 @@ class Net(nn.Module):
         # x = self.fc1_drop(self.fc1_act(self.fc1(x)))
         x = self.fc1_act(self.fc1(x))
 
-
         # FC2
         x = self.fc2(x)
 
@@ -187,7 +188,7 @@ class Net(nn.Module):
 
 class Net2(nn.Module):
     # This part defines the layers
-    def __init__(self, input_size: int = 1, output_size: int = 10, dropout_prob:float = 0.15):
+    def __init__(self, input_size: int = 1, output_size: int = 10, dropout_prob: float = 0.15):
         """Our custom CNN
 
         Args:
@@ -219,8 +220,8 @@ class Net2(nn.Module):
             stride=stride,
         )
         conv1_act = act_function
-        
-        self.conv1_seq = nn.Sequential(conv1, nn.ReLU()) 
+
+        self.conv1_seq = nn.Sequential(conv1, nn.ReLU())
 
         out_img_size = compute_img_size(in_img_size, kernel_size, stride, padding, pooling)
 
@@ -236,7 +237,7 @@ class Net2(nn.Module):
         conv2_act = act_function
         conv2_pool = pool
 
-        self.conv2_seq = nn.Sequential(conv2, nn.ReLU(), nn.MaxPool2d(kernel_size=(2, 2))) 
+        self.conv2_seq = nn.Sequential(conv2, nn.ReLU(), nn.MaxPool2d(kernel_size=(2, 2)))
 
         out_img_size = compute_img_size(in_img_size, kernel_size, stride, padding, pooling)
 
@@ -252,12 +253,12 @@ class Net2(nn.Module):
         conv3_act = act_function
         conv3_pool = pool
 
-        self.conv3_seq = nn.Sequential(conv3, nn.ReLU(), nn.MaxPool2d(kernel_size=(2, 2))) 
+        self.conv3_seq = nn.Sequential(conv3, nn.ReLU(), nn.MaxPool2d(kernel_size=(2, 2)))
 
         out_img_size = compute_img_size(in_img_size, kernel_size, stride, padding, pooling)
 
         # # Conv forward pass
-        # self.conv_seq_2 = nn.Sequential(self.conv2, act_function, pool) 
+        # self.conv_seq_2 = nn.Sequential(self.conv2, act_function, pool)
 
         self.conv_fw = nn.Sequential(self.conv1_seq, self.conv2_seq, self.conv3_seq)
 
@@ -280,10 +281,9 @@ class Net2(nn.Module):
         # The last layer size the same as the num of classes
         in_size = out_size
         out_size = output_size
-        fc3 = nn.Linear(in_size , out_size)
+        fc3 = nn.Linear(in_size, out_size)
         fc3_act = final_act_function
         self.fc3_seq = nn.Sequential(fc3, nn.LogSoftmax())
-
 
         # # Seq forward pass
         self.fc_fw = nn.Sequential(self.fc1_seq, self.fc2_seq, self.fc3_seq)
@@ -305,9 +305,8 @@ class Net2(nn.Module):
 
 class VGG11(nn.Module):
     # This part defines the layers
-    def __init__(self, input_size: int = 1, n_classes: int = 10, dropout_prob:float = 0.15):
-        """Our implementation of VGG16
-        """
+    def __init__(self, input_size: int = 1, n_classes: int = 10, dropout_prob: float = 0.15):
+        """Our implementation of VGG16"""
         super(VGG11, self).__init__()
 
         # Parameters
@@ -348,7 +347,7 @@ class VGG11(nn.Module):
             nn.ReLU(True),
             nn.Dropout(p=dropout_prob),
             fc3,
-            nn.LogSoftmax()
+            nn.LogSoftmax(),
         )
 
     # And this part defines the way they are connected to each other
@@ -370,32 +369,33 @@ class VGG11(nn.Module):
 
 class VGG13(nn.Module):
     # This part defines the layers
-    def __init__(self, n_classes: int = 10, dropout_prob:float = 0.15, act_fn: nn.Module = nn.ReLU()):
-        """Our implementation of VGG16
-        """
+    def __init__(
+        self, n_classes: int = 10, dropout_prob: float = 0.15, act_fn: nn.Module = nn.ReLU()
+    ):
+        """Our implementation of VGG16"""
         super(VGG13, self).__init__()
 
         # ------- Conv -------
         # # input: 32x32
         # VGG13:  [64, 64, "M", 128, 128, "M", 256, 256, "M", 512, 512, "M", 512, 512, "M"],
         conv_layers_list = [
-            {'type': 'conv', 'out_ch': 64, 'f': 3, 's': 1, 'p': 1},         # to 32 x 32 x 64
-            {'type': 'conv', 'out_ch': 64, 'f': 3, 's': 1, 'p': 1},         # to 32 x 32 x 64
-            {'type': 'max_pool', 'f': 2},                                   # to 16 x 16 x 64
-            {'type': 'conv', 'out_ch': 128, 'f': 3, 's': 1, 'p': 1},        # to 16 x 16 x 128
-            {'type': 'conv', 'out_ch': 128, 'f': 3, 's': 1, 'p': 1},        # to 16 x 16 x 128
-            {'type': 'max_pool', 'f': 2},                                   # to 8  x 8  x 128
-            {'type': 'conv', 'out_ch': 256, 'f': 3, 's': 1, 'p': 1},        # to 8  x 8  x 256
-            {'type': 'conv', 'out_ch': 256, 'f': 3, 's': 1, 'p': 1},        # to 8  x 8  x 256
-            {'type': 'max_pool', 'f': 2},                                   # to 4  x 4  x 256
-            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},        # to 4  x 4  x 512
-            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},        # to 4  x 4  x 512
-            {'type': 'max_pool', 'f': 2},                                   # to 2  x 2  x 512
-            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},        # to 2  x 2  x 512
-            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},        # to 2  x 2  x 512
-            {'type': 'max_pool', 'f': 2},                                   # to 1  x 1  x 512
+            {'type': 'conv', 'out_ch': 64, 'f': 3, 's': 1, 'p': 1},  # to 32 x 32 x 64
+            {'type': 'conv', 'out_ch': 64, 'f': 3, 's': 1, 'p': 1},  # to 32 x 32 x 64
+            {'type': 'max_pool', 'f': 2},  # to 16 x 16 x 64
+            {'type': 'conv', 'out_ch': 128, 'f': 3, 's': 1, 'p': 1},  # to 16 x 16 x 128
+            {'type': 'conv', 'out_ch': 128, 'f': 3, 's': 1, 'p': 1},  # to 16 x 16 x 128
+            {'type': 'max_pool', 'f': 2},  # to 8  x 8  x 128
+            {'type': 'conv', 'out_ch': 256, 'f': 3, 's': 1, 'p': 1},  # to 8  x 8  x 256
+            {'type': 'conv', 'out_ch': 256, 'f': 3, 's': 1, 'p': 1},  # to 8  x 8  x 256
+            {'type': 'max_pool', 'f': 2},  # to 4  x 4  x 256
+            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 4  x 4  x 512
+            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 4  x 4  x 512
+            {'type': 'max_pool', 'f': 2},  # to 2  x 2  x 512
+            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 2  x 2  x 512
+            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 2  x 2  x 512
+            {'type': 'max_pool', 'f': 2},  # to 1  x 1  x 512
         ]
-        
+
         layers = make_conv_layers(conv_layers_list, act_fn, use_batch_norm=True)
         self.conv_fw = nn.Sequential(*layers)
 
@@ -403,7 +403,7 @@ class VGG13(nn.Module):
         ...
 
         # ------- FC -------
-        fc1 = nn.Linear(1*1*512, 4096)
+        fc1 = nn.Linear(1 * 1 * 512, 4096)
         fc2 = nn.Linear(4096, 4096)
         fc3 = nn.Linear(4096, n_classes)
 
@@ -415,7 +415,7 @@ class VGG13(nn.Module):
             nn.ReLU(),
             nn.Dropout(p=dropout_prob),
             fc3,
-            nn.LogSoftmax()
+            nn.LogSoftmax(),
         )
 
     def forward(self, x):
@@ -432,50 +432,43 @@ class VGG13(nn.Module):
 
 class VGG16(nn.Module):
     # This part defines the layers
-    def __init__(self, n_classes: int = 10, dropout_prob:float = 0.15, act_fn: nn.Module = nn.ReLU()):
-        """Our implementation of VGG16
-        """
+    def __init__(
+        self, n_classes: int = 10, dropout_prob: float = 0.15, act_fn: nn.Module = nn.ReLU()
+    ):
+        """Our implementation of VGG16"""
         super(VGG16, self).__init__()
 
         # ------- Conv -------
         # # input: 32x32
-        # conv_layers_list = [
-        #     {'type': 'conv', 'out_ch': 64, 'f': 3, 's': 1, 'p': 1},         # to 32 x 32 x 64
-        #     {'type': 'max_pool', 'f': 2},                                   # to 16 x 16 x 64
-        #     {'type': 'conv', 'out_ch': 128, 'f': 3, 's': 1, 'p': 1},        # to 16 x 16 x 128
-        #     {'type': 'max_pool', 'f': 2},                                   # to 8  x 8  x 128
-        #     {'type': 'conv', 'out_ch': 256, 'f': 3, 's': 1, 'p': 1},        # to 8  x 8  x 256
-        #     {'type': 'max_pool', 'f': 2},                                   # to 4  x 4  x 256
-        #     {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},        # to 4  x 4  x 512
-        #     {'type': 'max_pool', 'f': 2},                                   # to 2  x 2  x 512
-        #     {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},        # to 2  x 2  x 512
-        #     {'type': 'max_pool', 'f': 2},                                   # to 1  x 1  x 512
-        # ]
-        
         # VGG16:  [64, 64, "M", 128, 128, "M", 256, 256, 256, "M", 512, 512, 512, "M", 512, 512, 512, "M"]
-        # input: 64x64
         conv_layers_list = [
-            {'type': 'conv', 'out_ch': 64, 'f': 3, 's': 1, 'p': 1},         # to 64 x 64 x 64
-            {'type': 'max_pool', 'f': 2},                                   # to 32 x 32 x 64
-            {'type': 'conv', 'out_ch': 128, 'f': 3, 's': 1, 'p': 1},        # to 32 x 32 x 128
-            {'type': 'max_pool', 'f': 2},                                   # to 16 x 16 x 128
-            {'type': 'conv', 'out_ch': 256, 'f': 3, 's': 1, 'p': 1},        # to 16 x 16 x 256
-            {'type': 'max_pool', 'f': 2},                                   # to 8  x 8  x 256
-            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},        # to 8  x 8  x 512
-            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},        # to 8  x 8  x 512
-            {'type': 'max_pool', 'f': 2},                                   # to 4  x 4  x 512
+            {'type': 'conv', 'out_ch': 64, 'f': 3, 's': 1, 'p': 1},  # to 32 x 32 x 64
+            {'type': 'conv', 'out_ch': 64, 'f': 3, 's': 1, 'p': 1},  # to 32 x 32 x 64
+            {'type': 'max_pool', 'f': 2},  # to 16 x 16 x 64
+            {'type': 'conv', 'out_ch': 128, 'f': 3, 's': 1, 'p': 1},  # to 16 x 16 x 128
+            {'type': 'conv', 'out_ch': 128, 'f': 3, 's': 1, 'p': 1},  # to 16 x 16 x 128
+            {'type': 'max_pool', 'f': 2},  # to 8  x 8  x 128
+            {'type': 'conv', 'out_ch': 256, 'f': 3, 's': 1, 'p': 1},  # to 8  x 8  x 256
+            {'type': 'conv', 'out_ch': 256, 'f': 3, 's': 1, 'p': 1},  # to 8  x 8  x 256
+            {'type': 'conv', 'out_ch': 256, 'f': 3, 's': 1, 'p': 1},  # to 8  x 8  x 256
+            {'type': 'max_pool', 'f': 2},  # to 4  x 4  x 256
+            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 4  x 4  x 512
+            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 4  x 4  x 512
+            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 4  x 4  x 512
+            {'type': 'max_pool', 'f': 2},  # to 2  x 2  x 512
+            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 2  x 2  x 512
+            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 2  x 2  x 512
+            {'type': 'conv', 'out_ch': 512, 'f': 3, 's': 1, 'p': 1},  # to 2  x 2  x 512
+            {'type': 'max_pool', 'f': 2},  # to 1  x 1  x 512
         ]
 
         layers = make_conv_layers(conv_layers_list, act_fn, use_batch_norm=True)
         self.conv_fw = nn.Sequential(*layers)
 
-        # --- Avg Pool ---
-        ...
-
         # ------- FC -------
-        fc1 = nn.Linear(4*4*512, 4096)
-        fc2 = nn.Linear(4096, 2048)
-        fc3 = nn.Linear(2048, n_classes)
+        fc1 = nn.Linear(1 * 1 * 512, 4096)
+        fc2 = nn.Linear(4096, 4096)
+        fc3 = nn.Linear(4096, n_classes)
 
         self.fc_fw = nn.Sequential(
             fc1,
@@ -485,7 +478,7 @@ class VGG16(nn.Module):
             nn.ReLU(),
             nn.Dropout(p=dropout_prob),
             fc3,
-            nn.LogSoftmax()
+            nn.LogSoftmax(),
         )
 
     # And this part defines the way they are connected to each other
@@ -502,20 +495,21 @@ class VGG16(nn.Module):
         out = self.fc_fw(out)
 
         return out
-    
+
 
 class LeNet5(nn.Module):
     # This part defines the layers
-    def __init__(self, n_classes: int = 10, dropout_prob:float = 0.15, act_fn: nn.Module = nn.ReLU()):
-        """Our implementation of VGG16
-        """
+    def __init__(
+        self, n_classes: int = 10, dropout_prob: float = 0.15, act_fn: nn.Module = nn.ReLU()
+    ):
+        """Our implementation of VGG16"""
         super(LeNet5, self).__init__()
 
         # ------- Conv -------
         conv_layers_list = [
-            {'type': 'conv', 'out_ch': 6, 'f': 5, 's': 1, 'p':'valid'},
+            {'type': 'conv', 'out_ch': 6, 'f': 5, 's': 1, 'p': 'valid'},
             {'type': 'max', 'f': 2},
-            {'type': 'conv', 'out_ch': 16, 'f': 5, 's': 1, 'p':'valid'},
+            {'type': 'conv', 'out_ch': 16, 'f': 5, 's': 1, 'p': 'valid'},
             {'type': 'max', 'f': 2},
         ]
 
@@ -538,7 +532,7 @@ class LeNet5(nn.Module):
             nn.ReLU(True),
             nn.Dropout(p=dropout_prob),
             fc3,
-            nn.LogSoftmax()
+            nn.LogSoftmax(),
         )
 
     # And this part defines the way they are connected to each other
@@ -578,9 +572,10 @@ def get_efficientnet_b0():
     return model
 
 
-
-def get_model(model_type: Literal["MyNet", "LeNet5", "VGG11", "VGG16"], neptune_run: neptune.Run, act_fn, dropout_prob, img_size):
-    print(f'Loading model...')
+def get_model(
+    model_type: Literal["MyNet", "LeNet5", "VGG11", "VGG13", "VGG16"], act_fn, dropout_prob
+):
+    print(f'Loading model... {model_type}')
     model = None
     act_fn = ACT_FN_DICT[act_fn]
 
@@ -593,15 +588,22 @@ def get_model(model_type: Literal["MyNet", "LeNet5", "VGG11", "VGG16"], neptune_
 
     elif model_type == "VGG11":
         model = VGG11(act_fn=act_fn, dropout_prob=dropout_prob)
-        
+
+    elif model_type == "VGG13":
+        model = VGG13(act_fn=act_fn, dropout_prob=dropout_prob)
+
     elif model_type == 'VGG16':
         model = VGG16(act_fn=act_fn, dropout_prob=dropout_prob)
 
     else:
         raise ValueError(f"Invalid model type: {model_type}")
-    
+
     model = model.to(DEVICE)
 
+    return model
+
+
+def log_model_info(model, img_size, neptune_run: neptune.Run):
     model_info = summary(
         model,
         input_size=(
@@ -615,11 +617,8 @@ def get_model(model_type: Literal["MyNet", "LeNet5", "VGG11", "VGG16"], neptune_
         col_width=20,
         row_settings=["var_names"],
     )
-
-    neptune_run["model/type"] = model_type
+    neptune_run["model/type"] = str(type(model))
     neptune_run["model/summary"].upload(File.from_content(str(model_info)))
-
-    return model
 
 
 def get_optimizer(
