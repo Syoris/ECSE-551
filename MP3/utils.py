@@ -130,7 +130,9 @@ def get_run_data(run_id: str) -> dict:
         run_id (str): Run id in Neptune
 
     Returns:
-        dict: Run's data
+        dict: Run's data. {key: pd.DataFrame}
+            Dataframe cols: index, step, value
+            Keys: train_loss, train_acc, val_loss, val_acc
     """
     # --- Load data ---
     print(f"Loading run from Neptune: {run_id}")
@@ -145,15 +147,16 @@ def get_run_data(run_id: str) -> dict:
 
     # --- Parse data ---
     run_data_dict = {}
-    run_training_data = run['training'].fetch()
-    run_val_data = run['val'].fetch()
+    training_loss = run['training/loss'].fetch_values()
+    training_acc = run['training/acc'].fetch_values()
 
-    run_data_dict['train_loss'] = run_training_data['loss']
-    run_data_dict['train_acc'] = run_training_data['acc']
-    # run_data_dict['train_log_counter'] = ...
-    run_data_dict['val_loss'] = run_val_data['loss']
-    run_data_dict['val_acc'] = run_val_data['acc']
-    # run_data_dict['val_log_counter'] = ...
+    val_loss = run['val/loss'].fetch_values()
+    val_acc = run['val/acc'].fetch_values()
+
+    run_data_dict['train_loss'] = training_loss[['step', 'value']]
+    run_data_dict['train_acc'] = training_acc[['step', 'value']]
+    run_data_dict['val_loss'] = val_loss[['step', 'value']]
+    run_data_dict['val_acc'] = val_acc[['step', 'value']]
 
     return run_data_dict
 

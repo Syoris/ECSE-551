@@ -301,8 +301,13 @@ def add_test_acc(run_id, test_acc: float):
 if __name__ == "__main__":
     # train_all_models()
 
+    runs = ["MP3-85", "MP3-86", "MP3-88"]
+    for run_id in runs:
+        n_add_epochs = 50
+        continue_training(run_id, n_add_epochs)
+
     run_id = "MP3-87"
-    n_add_epochs = 20
+    n_add_epochs = 30
     continue_training(run_id, n_add_epochs)
 
     # run_id = "MP3-66"
