@@ -57,17 +57,18 @@ def train_model(
     run_name = run["sys/custom_run_id"].fetch()
 
     # Validation for random weights
-    val_loss, val_acc, val_log_counter = val_step(
-        model=model,
-        dataloader=val_dl,
-        loss_fn=loss_fn,
-        epoch_num=0,
-        train_n_samples=train_n_samples,
-        run=run,
-    )
-    results["val_loss"].append(val_loss)
-    results["val_acc"].append(val_acc)
-    results["val_log_counter"].append(val_log_counter)
+    if start_epoch == 1:
+        val_loss, val_acc, val_log_counter = val_step(
+            model=model,
+            dataloader=val_dl,
+            loss_fn=loss_fn,
+            epoch_num=0,
+            train_n_samples=train_n_samples,
+            run=run,
+        )
+        results["val_loss"].append(val_loss)
+        results["val_acc"].append(val_acc)
+        results["val_log_counter"].append(val_log_counter)
 
     end_epoch = epochs + start_epoch
     for epoch in range(start_epoch, end_epoch):

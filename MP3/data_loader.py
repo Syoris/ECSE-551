@@ -123,7 +123,9 @@ def create_dataloaders(
     plot_images: bool = False,
     neptune_run: neptune.Run | None = None,
 ):
-    print("Creating datasets...")
+    print(f"Creating datasets with:")
+    print(f'\t-img_size: {img_size}')
+    print(f'\t-train_batch_size: {train_batch_size}')
     # Load the dataset
     mean = 0.1571
     std = 0.2676

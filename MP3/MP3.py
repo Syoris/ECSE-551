@@ -192,15 +192,19 @@ def continue_training(run_id, n_add_epochs):
     print(f'Continuing training of: {run_id}, {model_id}')
     print(f'\tTraining from {n_epochs} for {n_add_epochs} more epochs')
 
-    run_name = utils.get_run_name(model_id.split('_')[0])
-    print(f'New run: {run_name}')
+    # run = neptune.init_run(
+    #     project="MyResearch/ECSE551-MP3", with_id=run_id, api_token=NEPTUNE_API, mode="read-only"
+    # )
 
+    # run_name = utils.get_run_name(model_id.split('_')[0])
+    # print(f'New run: {run_name}')
     train_run = neptune.init_run(
         project="MyResearch/ECSE551-MP3",
         api_token=NEPTUNE_API,
-        custom_run_id=run_name,
+        with_id=run_id,
         source_files=["MP3/*.py"],
     )
+    train_run["parameters/n_epoch"] = n_add_epochs + n_epochs
 
     train_model(
         model,
@@ -264,7 +268,7 @@ def add_test_acc(run_id, test_acc: float):
 if __name__ == "__main__":
     # train_models()
 
-    run_id = "MP3-76"
+    run_id = "MP3-74"
     n_add_epochs = 2
     continue_training(run_id, n_add_epochs)
 
