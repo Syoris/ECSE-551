@@ -104,7 +104,7 @@ def start_model_training(hyperparameters: dict):
     loss_fn = hyperparameters['loss_fn']
 
     # --- Setup Run ---
-    run_name = utils.get_run_name(model_name)
+    run_name = utils.generate_run_name(model_name)
     print(f"Model: {model_name}\t Neptune run: {run_name}")
     run = neptune.init_run(
         project="MyResearch/ECSE551-MP3",
@@ -192,6 +192,10 @@ def load_run(
 
     # --- Optim ---
     optimizer = get_optimizer(model, type=optimizer_type, lr=lr, momentum=momentum)
+    if not retrain:
+        # Load the optimizer state
+        optim_path = Path("MP3/models") / model_id / "optimizer.pth"
+        optimizer.load_state_dict(torch.load(optim_path))
 
     # --- Loss ---
     loss_fn = get_loss_fn(loss_fn)
@@ -227,12 +231,6 @@ def continue_training(run_id, n_add_epochs):
     print(f'Continuing training of: {run_id}, {model_id}')
     print(f'\tTraining from {n_epochs} for {n_add_epochs} more epochs')
 
-    # run = neptune.init_run(
-    #     project="MyResearch/ECSE551-MP3", with_id=run_id, api_token=NEPTUNE_API, mode="read-only"
-    # )
-
-    # run_name = utils.get_run_name(model_id.split('_')[0])
-    # print(f'New run: {run_name}')
     train_run = neptune.init_run(
         project="MyResearch/ECSE551-MP3",
         api_token=NEPTUNE_API,
@@ -301,11 +299,11 @@ def add_test_acc(run_id, test_acc: float):
 
 
 if __name__ == "__main__":
-    train_all_models()
+    # train_all_models()
 
-    # run_id = "MP3-74"
-    # n_add_epochs = 8
-    # continue_training(run_id, n_add_epochs)
+    run_id = "MP3-87"
+    n_add_epochs = 20
+    continue_training(run_id, n_add_epochs)
 
     # run_id = "MP3-66"
     # n_epochs = 10
