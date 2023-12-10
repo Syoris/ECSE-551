@@ -140,6 +140,14 @@ def create_dataloaders(
         ]
     )
 
+    test_img_transform = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.Normalize(mean=(mean), std=(std)),
+            transforms.Resize((img_size, img_size)),
+        ]
+    )
+
     data_folder = f"MP3/data"
 
     train_file = "Train.pkl"
@@ -162,7 +170,7 @@ def create_dataloaders(
         folder_path=data_folder,
     )
 
-    test_ds = MyDataset(test_file, transform=img_transform, folder_path=data_folder)
+    test_ds = MyDataset(test_file, transform=test_img_transform, folder_path=data_folder)
 
     # Train/Val Datasets
     train_indices, val_indices, _, _ = train_test_split(

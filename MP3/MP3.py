@@ -34,7 +34,7 @@ def train_models():
     img_size = 64
 
     # Model
-    model_name = "VGG13"
+    model_name = "VGG16"
 
     act_fn = "ReLu"
     dropout_prob = 0.15
@@ -126,7 +126,7 @@ def load_run(
 
     model_id = run["sys/custom_run_id"].fetch()
     model_params = run["parameters"].fetch()
-    model_type = run["model/type"].fetch()
+    model_type = model_id.split('_')[0]
 
     # --- Hyperparameters ---
     # Datasets
@@ -162,21 +162,64 @@ def load_run(
     loss_fn = get_loss_fn(loss_fn)
 
     # --- Datasets ---
-    _, val_dl, test_dl, full_train_dl = create_dataloaders(
+    train_dl, val_dl, test_dl, full_train_dl = create_dataloaders(
         img_size, train_batch_size, test_batch_size, print_ds_infos=False, neptune_run=None
     )
 
     run.stop()
     print('Done loading')
 
-    return (model_id, model, [full_train_dl, val_dl, test_dl], optimizer, loss_fn, n_epochs)
+    return (
+        model_id,
+        model,
+        [train_dl, full_train_dl, val_dl, test_dl],
+        optimizer,
+        loss_fn,
+        n_epochs,
+    )
+
+
+def continue_training(run_id, n_add_epochs):
+    (
+        model_id,
+        model,
+        (train_dl, full_train_dl, val_dl, test_dl),
+        optimizer,
+        loss_fn,
+        n_epochs,
+    ) = load_run(run_id, retrain=False)
+
+    print(f'Continuing training of: {run_id}, {model_id}')
+    print(f'\tTraining from {n_epochs} for {n_add_epochs} more epochs')
+
+    run_name = utils.get_run_name(model_id.split('_')[0])
+    print(f'New run: {run_name}')
+
+    train_run = neptune.init_run(
+        project="MyResearch/ECSE551-MP3",
+        api_token=NEPTUNE_API,
+        custom_run_id=run_name,
+        source_files=["MP3/*.py"],
+    )
+
+    train_model(
+        model,
+        train_dl,
+        val_dl,
+        optimizer,
+        loss_fn,
+        n_add_epochs,
+        train_run,
+        start_epoch=n_epochs + 1,
+    )
+    train_run.stop()
 
 
 def test_model(run_id, retrain=True):
     (
         model_id,
         model,
-        (full_train_dl, val_dl, test_dl),
+        (train_dl, full_train_dl, val_dl, test_dl),
         optimizer,
         loss_fn,
         n_epochs,
@@ -219,7 +262,11 @@ def add_test_acc(run_id, test_acc: float):
 
 
 if __name__ == "__main__":
-    train_models()
+    # train_models()
+
+    run_id = "MP3-76"
+    n_add_epochs = 2
+    continue_training(run_id, n_add_epochs)
 
     # run_id = "MP3-66"
     # n_epochs = 10

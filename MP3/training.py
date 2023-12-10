@@ -20,6 +20,7 @@ def train_model(
     loss_fn: torch.nn.Module,
     epochs: int,
     run: neptune.Run,
+    start_epoch: int = 1,
 ) -> Dict[str, List]:
     """To train a model for the number of epochs specified
 
@@ -68,8 +69,9 @@ def train_model(
     results["val_acc"].append(val_acc)
     results["val_log_counter"].append(val_log_counter)
 
-    for epoch in range(1, epochs + 1):
-        print(f"####### Epoch {epoch}/{epochs} #######")
+    end_epoch = epochs + start_epoch
+    for epoch in range(start_epoch, end_epoch):
+        print(f"####### Epoch {epoch}/{end_epoch-1} #######")
 
         # train
         train_loss, train_acc, train_log_counter = train_step(
