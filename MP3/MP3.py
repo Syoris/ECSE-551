@@ -12,6 +12,8 @@ import pickle
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+import itertools
+import neptune
 
 # My functions
 from data_loader import create_dataloaders
@@ -19,34 +21,87 @@ from model import get_model, get_optimizer, get_loss_fn, log_model_info
 from training import train_model, predict
 import utils
 from params import *
-import neptune
 
 
 torch.backends.cudnn.enabled = False
 
 
-def train_models():
-    print(f"------- Training models -------")
+def train_all_models():
+    print(f'Training all models')
+
+    hyperparameters_options = {
+        "seed": [SEED],
+        # Dataset
+        "img_size": [32],
+        "train_batch_size": [64],
+        "test_batch_size": [64],
+        # Model
+        "model_name": ["LeNet5"],  # "MyNet", "LeNet5", "VGG11", "VGG13", "VGG16"
+        "act_fn": ["ReLu"],
+        "dropout_prob": [0.15],
+        # Optim
+        "optimizer": ["Adam"],
+        "n_epoch": [50],
+        "lr": [0.01, 1e-3, 1e-4, 1e-5],
+        "momentum": [0.5],
+        # Loss
+        "loss_fn": ["cross_entropy"],  # 'cross_entropy', 'nll'
+    }
+
+    # Create list with all options
+    keys, values = zip(*hyperparameters_options.items())
+    hp_options_list = [dict(zip(keys, v)) for v in itertools.product(*values)]
+
+    for idx, each_hp_set in enumerate(hp_options_list):
+        print(f'\n\n-------------------- Model {idx+1}/{len(hp_options_list)} --------------------')
+        print('Hyperparameters:')
+        print(each_hp_set)
+
+        start_model_training(each_hp_set)
+
+
+def start_model_training(hyperparameters: dict):
+    """To train a model with the given hyperparameters. Required fields:
+        - seed
+
+        - img_size
+        - train_batch_size
+        - test_batch_size
+
+        - model_name
+        - act_fn
+        - dropout_prob
+
+        - optimizer
+        - n_epoch
+        - lr
+        - momentum
+
+        - loss_fn
+
+    Args:
+        hyperparameters (dict): _description_
+    """
+    print(f"------- Model -------")
     # --- Hyperparameters ---
-    # Datasets
-    train_batch_size = 64
-    test_batch_size = 64
-    img_size = 64
+    train_batch_size = hyperparameters['train_batch_size']
+    test_batch_size = hyperparameters['test_batch_size']
+    img_size = hyperparameters['img_size']
 
     # Model
-    model_name = "VGG16"
+    model_name = hyperparameters['model_name']
 
-    act_fn = "ReLu"
-    dropout_prob = 0.15
+    act_fn = hyperparameters['act_fn']
+    dropout_prob = hyperparameters['dropout_prob']
 
     # Optim
-    n_epochs = 10
-    optimizer_type = "Adam"
-    lr = 0.001
-    momentum = 0.5
+    n_epochs = hyperparameters['n_epoch']
+    optimizer_type = hyperparameters['optimizer']
+    lr = hyperparameters['lr']
+    momentum = hyperparameters['momentum']
 
     # Loss
-    loss_fn = "cross_entropy"  # 'cross_entropy', 'nll'
+    loss_fn = hyperparameters['loss_fn']
 
     # --- Setup Run ---
     run_name = utils.get_run_name(model_name)
@@ -59,24 +114,6 @@ def train_models():
     )
 
     # Log hyperparameters
-    hyperparameters = {
-        "seed": SEED,
-        # Dataset
-        "img_size": img_size,
-        "train_batch_size": train_batch_size,
-        "test_batch_size": test_batch_size,
-        # Model
-        "model_name": model_name,
-        "act_fn": act_fn,
-        "dropout_prob": dropout_prob,
-        # Optim
-        "optimizer": optimizer_type,
-        "n_epoch": n_epochs,
-        "lr": lr,
-        "momentum": momentum,
-        # Loss
-        "loss_fn": loss_fn,
-    }
     run["parameters"] = hyperparameters
 
     # ---- Load Data ---
@@ -98,10 +135,8 @@ def train_models():
 
     run.stop()
 
-    utils.plot_training_loss(results)
-    utils.plot_training_acc(results)
-
-    ...
+    # utils.plot_training_loss(results)
+    # utils.plot_training_acc(results)
 
 
 def load_run(
@@ -266,11 +301,11 @@ def add_test_acc(run_id, test_acc: float):
 
 
 if __name__ == "__main__":
-    # train_models()
+    train_all_models()
 
-    run_id = "MP3-74"
-    n_add_epochs = 2
-    continue_training(run_id, n_add_epochs)
+    # run_id = "MP3-74"
+    # n_add_epochs = 8
+    # continue_training(run_id, n_add_epochs)
 
     # run_id = "MP3-66"
     # n_epochs = 10

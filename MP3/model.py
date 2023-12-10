@@ -54,7 +54,7 @@ def make_conv_layers(layers_list, act_fn, use_batch_norm: bool = False) -> List[
             avgPool = nn.AvgPool2d(kernel_size=kernel_size, padding=padding, stride=stride)
             layers += [avgPool, act_fn]
 
-        if layer['type'] == 'max_pool':
+        elif layer['type'] == 'max_pool':
             kernel_size = layer['f']
 
             avgPool = nn.MaxPool2d(kernel_size=kernel_size)
@@ -74,6 +74,9 @@ def make_conv_layers(layers_list, act_fn, use_batch_norm: bool = False) -> List[
                 layers += [conv2d, act_fn]
 
             in_channels = out_channels
+
+        else:
+            raise ValueError(f"Invalid layer type: {layer['type']}")
 
     return layers
 
@@ -432,22 +435,23 @@ class LeNet5(nn.Module):
         act_fn: nn.Module = nn.ReLU(),
         img_size: int = 32,
     ):
-        """Our implementation of VGG16"""
+        """Our implementation of LeNet5"""
+        if img_size != 32:
+            raise ValueError(f'Invalid image size for LeNet5. Only 32x32 images supported.')
+
         super(LeNet5, self).__init__()
 
         # ------- Conv -------
+        # input: 32x32x1
         conv_layers_list = [
-            {'type': 'conv', 'out_ch': 6, 'f': 5, 's': 1, 'p': 'valid'},
-            {'type': 'max', 'f': 2},
-            {'type': 'conv', 'out_ch': 16, 'f': 5, 's': 1, 'p': 'valid'},
-            {'type': 'max', 'f': 2},
+            {'type': 'conv', 'out_ch': 6, 'f': 5, 's': 1, 'p': 'valid'},  # to 28 x 28 x 6
+            {'type': 'max_pool', 'f': 2},  # to 14 x 14 x 6
+            {'type': 'conv', 'out_ch': 16, 'f': 5, 's': 1, 'p': 'valid'},  # to 10 x 10 x 16
+            {'type': 'max_pool', 'f': 2},  # to 05 x 05 x 16
         ]
 
         layers = make_conv_layers(conv_layers_list, act_fn)
         self.conv_fw = nn.Sequential(*layers)
-
-        # --- Avg Pool ---
-        ...
 
         # ------- FC -------
         fc1 = nn.Linear(400, 120)
