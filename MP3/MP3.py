@@ -83,11 +83,49 @@ ACT_FN_EXP_HP_OPTIONS = {
     "loss_fn": ["cross_entropy"],  # 'cross_entropy', 'nll'
 }
 
+LOSS_EXP_HP_OPTIONS = {
+    "seed": [SEED],
+    # Dataset
+    "img_size": [32],
+    "train_batch_size": [128],
+    "test_batch_size": [128],
+    # Model
+    "model_name": ["LeNet5"],  # "MyNet", "LeNet5", "VGG11", "VGG13", "VGG16"
+    "act_fn": ["ReLu"],
+    "dropout_prob": [0.15],
+    # Optim
+    "optimizer": ["Adam"],
+    "n_epoch": [10],
+    "lr": [1e-3],
+    "momentum": [0.5],
+    # Loss
+    "loss_fn": ["cross_entropy", 'nll'],  # 'cross_entropy', 'nll'
+}
+
+BEST_MODEL_EXP = {
+    "seed": [SEED],
+    # Dataset
+    "img_size": [64],
+    "train_batch_size": [256],
+    "test_batch_size": [256],
+    # Model
+    "model_name": ["VGG16"],  # "MyNet", "LeNet5", "VGG11", "VGG13", "VGG16"
+    "act_fn": ["LeakyReLU"],
+    "dropout_prob": [0.15],
+    # Optim
+    "optimizer": ["Adam"],
+    "n_epoch": [50],
+    "lr": [1e-3],
+    "momentum": [0],
+    # Loss
+    "loss_fn": ["cross_entropy"],  # 'cross_entropy', 'nll'
+}
+
 
 def train_all_models():
     print(f'Training all models')
 
-    hyperparameters_options = ACT_FN_EXP_HP_OPTIONS
+    hyperparameters_options = BEST_MODEL_EXP
 
     # Create list with all options
     keys, values = zip(*hyperparameters_options.items())
@@ -307,7 +345,7 @@ def test_model(run_id, n_test_epochs, retrain=True):
     ) = load_run(run_id, retrain=retrain)
 
     if retrain:
-        model_id += '_Full'
+        model_id += f'_Test_{n_test_epochs}'
         print(f'Starting new training: {model_id}')
         train_run = neptune.init_run(
             project="MyResearch/ECSE551-MP3",
@@ -345,8 +383,8 @@ def add_test_acc(run_id, test_acc: float):
 
 
 if __name__ == "__main__":
-    # --------- Train all ---------
-    train_all_models()
+    # # --------- Train all ---------
+    # train_all_models()
 
     # # --------- Continue training ---------
     # runs = ["MP3-86", "MP3-87", "MP3-88"]
@@ -355,15 +393,15 @@ if __name__ == "__main__":
     #     continue_training(run_id, n_add_epochs)
 
     # # --------- Prediction ---------
-    # run_id = "MP3-75"
-    # n_epochs = 10
+    # run_id = "MP3-109"
+    # n_epochs = 20
     # test_model(run_id, n_epochs)
 
-    # # --------- To Neptune ---------
-    # # Add test acc to neptune
-    # run_id = "MP3-89"
-    # test_acc = 0.92033
-    # add_test_acc(run_id, test_acc)
+    # --------- To Neptune ---------
+    # Add test acc to neptune
+    run_id = "MP3-110"
+    test_acc = 0.92100
+    add_test_acc(run_id, test_acc)
 
     ...
 

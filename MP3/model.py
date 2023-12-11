@@ -555,4 +555,11 @@ def get_optimizer(
 
 
 def get_loss_fn(type: Literal["nll", "cross_entropy"] = "cross_entropy"):
-    return nn.CrossEntropyLoss()
+    if type == 'cross_entropy':
+        loss_fn = nn.CrossEntropyLoss()
+    elif type == 'nll':
+        loss_fn = nn.NLLLoss()
+    else:
+        raise ValueError(f'Invalid loss function type: {type}')
+
+    return loss_fn
