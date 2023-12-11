@@ -18,7 +18,9 @@ from neptune.types import File
 
 ACT_FN_DICT = {
     'ReLu': nn.ReLU(),
-    'tanh': nn.Tanh(),
+    'LeakyReLU': nn.LeakyReLU(),
+    'Tanh': nn.Tanh(),
+    'Sigmoid': nn.Sigmoid(),
 }
 
 

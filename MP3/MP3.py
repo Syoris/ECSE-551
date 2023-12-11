@@ -26,27 +26,68 @@ from params import *
 torch.backends.cudnn.enabled = False
 
 
+LR_EXP_HP_OPTIONS = {
+    "seed": [SEED],
+    # Dataset
+    "img_size": [32],
+    "train_batch_size": [64],
+    "test_batch_size": [64],
+    # Model
+    "model_name": ["LeNet5"],  # "MyNet", "LeNet5", "VGG11", "VGG13", "VGG16"
+    "act_fn": ["ReLu"],
+    "dropout_prob": [0.15],
+    # Optim
+    "optimizer": ["Adam"],
+    "n_epoch": [100],
+    "lr": [0.01, 1e-3, 1e-4, 1e-5],
+    "momentum": [0.5],
+    # Loss
+    "loss_fn": ["cross_entropy"],  # 'cross_entropy', 'nll'
+}
+
+BATCH_SIZE_EXP_HP_OPTIONS = {
+    "seed": [SEED],
+    # Dataset
+    "img_size": [32],
+    "train_batch_size": [32, 64, 128, 256, 512],
+    "test_batch_size": [64],
+    # Model
+    "model_name": ["LeNet5"],  # "MyNet", "LeNet5", "VGG11", "VGG13", "VGG16"
+    "act_fn": ["ReLu"],
+    "dropout_prob": [0.15],
+    # Optim
+    "optimizer": ["Adam"],
+    "n_epoch": [10],
+    "lr": [1e-3],
+    "momentum": [0.5],
+    # Loss
+    "loss_fn": ["cross_entropy"],  # 'cross_entropy', 'nll'
+}
+
+ACT_FN_EXP_HP_OPTIONS = {
+    "seed": [SEED],
+    # Dataset
+    "img_size": [32],
+    "train_batch_size": [128],
+    "test_batch_size": [128],
+    # Model
+    "model_name": ["LeNet5"],  # "MyNet", "LeNet5", "VGG11", "VGG13", "VGG16"
+    "act_fn": ["ReLu", "Tanh", "LeakyReLU", 'Sigmoid'],
+    "dropout_prob": [0.15],
+    # Optim
+    "optimizer": ["Adam"],
+    "n_epoch": [10],
+    "lr": [1e-3],
+    "momentum": [0.5],
+    # Loss
+    "loss_fn": ["cross_entropy"],  # 'cross_entropy', 'nll'
+}
+
+
 def train_all_models():
     print(f'Training all models')
 
-    hyperparameters_options = {
-        "seed": [SEED],
-        # Dataset
-        "img_size": [32],
-        "train_batch_size": [64],
-        "test_batch_size": [64],
-        # Model
-        "model_name": ["LeNet5"],  # "MyNet", "LeNet5", "VGG11", "VGG13", "VGG16"
-        "act_fn": ["ReLu"],
-        "dropout_prob": [0.15],
-        # Optim
-        "optimizer": ["Adam"],
-        "n_epoch": [50],
-        "lr": [0.01, 1e-3, 1e-4, 1e-5],
-        "momentum": [0.5],
-        # Loss
-        "loss_fn": ["cross_entropy"],  # 'cross_entropy', 'nll'
-    }
+    hyperparameters_options = ACT_FN_EXP_HP_OPTIONS
 
     # Create list with all options
     keys, values = zip(*hyperparameters_options.items())
@@ -215,6 +256,7 @@ def load_run(
         optimizer,
         loss_fn,
         n_epochs,
+        model_params,
     )
 
 
@@ -226,6 +268,7 @@ def continue_training(run_id, n_add_epochs):
         optimizer,
         loss_fn,
         n_epochs,
+        hyperparams,
     ) = load_run(run_id, retrain=False)
 
     print(f'Continuing training of: {run_id}, {model_id}')
@@ -252,14 +295,15 @@ def continue_training(run_id, n_add_epochs):
     train_run.stop()
 
 
-def test_model(run_id, retrain=True):
+def test_model(run_id, n_test_epochs, retrain=True):
     (
         model_id,
         model,
         (train_dl, full_train_dl, val_dl, test_dl),
         optimizer,
         loss_fn,
-        n_epochs,
+        n_train_epochs,
+        hyperparams,
     ) = load_run(run_id, retrain=retrain)
 
     if retrain:
@@ -271,7 +315,9 @@ def test_model(run_id, retrain=True):
             custom_run_id=model_id,
             source_files=["MP3/*.py"],
         )
-        train_model(model, full_train_dl, val_dl, optimizer, loss_fn, n_epochs, train_run)
+        hyperparams['n_epoch'] = n_test_epochs
+        train_run["parameters"] = hyperparams
+        train_model(model, full_train_dl, val_dl, optimizer, loss_fn, n_test_epochs, train_run)
         train_run.stop()
 
     y_test = predict(model, test_dl)
@@ -299,23 +345,39 @@ def add_test_acc(run_id, test_acc: float):
 
 
 if __name__ == "__main__":
-    # train_all_models()
+    # --------- Train all ---------
+    train_all_models()
 
-    runs = ["MP3-85", "MP3-86", "MP3-88"]
-    for run_id in runs:
-        n_add_epochs = 50
-        continue_training(run_id, n_add_epochs)
+    # # --------- Continue training ---------
+    # runs = ["MP3-86", "MP3-87", "MP3-88"]
+    # n_epochs = [50, 30, 50]
+    # for run_id, n_add_epochs in zip(runs, n_epochs):
+    #     continue_training(run_id, n_add_epochs)
 
-    run_id = "MP3-87"
-    n_add_epochs = 30
-    continue_training(run_id, n_add_epochs)
-
-    # run_id = "MP3-66"
+    # # --------- Prediction ---------
+    # run_id = "MP3-75"
     # n_epochs = 10
     # test_model(run_id, n_epochs)
 
+    # # --------- To Neptune ---------
     # # Add test acc to neptune
-    # run_id = "MP3-69"
-    # test_acc = 0.89666
+    # run_id = "MP3-89"
+    # test_acc = 0.92033
     # add_test_acc(run_id, test_acc)
-    # ...
+
+    ...
+
+    # run = neptune.init_run(
+    #     project="MyResearch/ECSE551-MP3", with_id='MP3-90', api_token=NEPTUNE_API
+    # )
+
+    # run["parameters/train_batch_size"] = 64
+    # run["parameters/test_batch_size"] = 64
+    # run["parameters/img_size"] = 64
+    # run["parameters/act_fn"] = 'ReLu'
+    # run["parameters/dropout_prob"] = 0.15
+    # run["parameters/n_epoch"] = 10
+    # run["parameters/optimizer"] = 'Adam'
+    # run["parameters/lr"] = 0.001
+    # run["parameters/momentum"] = 0.5
+    # run["parameters/loss_fn"] = 'cross_entropy'
