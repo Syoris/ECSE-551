@@ -22,7 +22,7 @@ def lenet5_lr_plots():
     plt.ylabel("Cross-entropy loss")
     plt.grid(True)
     plt.title("Impact of learning rate on validation loss for LeNet5")
-    plt.savefig(Path('MP3') / 'figures' / 'Lenet5_lr.png')
+    # plt.savefig(Path('MP3') / 'figures' / 'Lenet5_lr.png')
     plt.show(block=False)
 
 
@@ -45,7 +45,7 @@ def lenet5_batch_size_plots():
     plt.ylabel("Cross-entropy loss")
     plt.grid(True)
     plt.title("Impact of batch size on averaged training loss for LeNet5")
-    plt.savefig(Path('MP3') / 'figures' / 'Lenet5_batch.png')
+    # plt.savefig(Path('MP3') / 'figures' / 'Lenet5_batch.png')
     plt.show(block=False)
 
 
@@ -68,7 +68,7 @@ def lenet5_act_fn_plots():
     plt.ylabel("Cross-entropy loss")
     plt.grid(True)
     plt.title("Impact of activation function on validation loss for LeNet5")
-    plt.savefig(Path('MP3') / 'figures' / 'Lenet5_act_fn.png')
+    # plt.savefig(Path('MP3') / 'figures' / 'Lenet5_act_fn.png')
     plt.show(block=False)
 
 
@@ -91,14 +91,14 @@ def lenet5_loss_plots():
     plt.ylabel("Validation Accuracy")
     plt.grid(True)
     plt.title("Impact of activation function on validation accuracy for LeNet5")
-    plt.savefig(Path('MP3') / 'figures' / 'Lenet5_loss.png')
+    # plt.savefig(Path('MP3') / 'figures' / 'Lenet5_loss.png')
     plt.show(block=False)
 
 
 def plot_best_model():
     print('\n----- Best model -----')
     runs = ['MP3-109']
-    legends = ["Training loss", "Validation loss"]
+    legends = ["MP3-109"]
 
     data_dict = {}
     for run in runs:
@@ -113,10 +113,10 @@ def plot_best_model():
 
     plt.legend(legends, loc="upper right")
     plt.xlabel("Epoch")
-    plt.ylabel("Cross-entropy loss")
+    plt.ylabel("Loss")
     plt.grid(True)
-    plt.title("Rolling average of the loss during training of VGG16")
-    plt.savefig(Path('MP3') / 'figures' / 'VGG16_training.png')
+    plt.title("...")
+    # plt.savefig(Path('MP3') / 'figures' / 'Lenet5_loss.png')
     plt.show(block=False)
 
 

@@ -103,15 +103,16 @@ class MyNet(nn.Module):
         # Parameters
         final_act_function = nn.LogSoftmax()
         dropout_rate = nn.Dropout(p=dropout_prob)
+        pool = nn.MaxPool2d(kernel_size=(2, 2))
 
         # ------- Conv -------
         # Conv1: 1 channel(greyscale) to 8 channnels. Kernel=5, stride=1
-        in_channels = 1
+        in_channels = 32
         out_channels = 8
         kernel_size = 5
         padding = "valid"  # same: With 0 padding, image is same size, valid: no padding
         stride = 1
-        in_img_size = 32
+        in_img_size = 28
         pooling = False
         conv1 = nn.Conv2d(
             in_channels=in_channels,
@@ -124,7 +125,7 @@ class MyNet(nn.Module):
 
         out_img_size = compute_img_size(in_img_size, kernel_size, stride, padding, pooling)
 
-        # Conv2: 8 channels to 16 channnels. Kernel=5, stride=1
+        # Conv2: 10 channels to 20 channnels. Kernel=5, stride=1
         in_channels = out_channels
         out_channels = 16
         kernel_size = 5
@@ -137,7 +138,7 @@ class MyNet(nn.Module):
 
         out_img_size = compute_img_size(in_img_size, kernel_size, stride, padding, pooling)
 
-        # Conv3: 16 channels to 32 channnels. Kernel=5, stride=1
+        # Conv3
         in_channels = out_channels
         out_channels = 32
         kernel_size = 5
@@ -187,11 +188,11 @@ class MyNet(nn.Module):
 
         # ----- Fully Connected -----
         # Imaginary layer
-        out = flatten(out, 1)
+        out = out.view(-1, self.fc_in_size)
 
         out = self.fc_fw(out)
 
-        return out
+        return x
 
 
 class VGG13(nn.Module):

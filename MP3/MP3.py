@@ -6,7 +6,6 @@ import pandas as pd
 from pathlib import Path
 from typing import Tuple, List
 
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import itertools
@@ -118,11 +117,30 @@ BEST_MODEL_EXP = {
     "loss_fn": ["cross_entropy"],  # 'cross_entropy', 'nll'
 }
 
+TEST_EXP = {
+    "seed": [SEED],
+    # Dataset
+    "img_size": [32],
+    "train_batch_size": [256],
+    "test_batch_size": [256],
+    # Model
+    "model_name": ["MyNet"],  # "MyNet", "LeNet5", "VGG11", "VGG13", "VGG16"
+    "act_fn": ["LeakyReLU"],
+    "dropout_prob": [0.15],
+    # Optim
+    "optimizer": ["Adam"],
+    "n_epoch": [10],
+    "lr": [1e-3],
+    "momentum": [0],
+    # Loss
+    "loss_fn": ["cross_entropy"],  # 'cross_entropy', 'nll'
+}
+
 
 def train_all_models():
     print(f'Training all models')
 
-    hyperparameters_options = BEST_MODEL_EXP
+    hyperparameters_options = TEST_EXP
 
     # Create list with all options
     keys, values = zip(*hyperparameters_options.items())
@@ -330,7 +348,13 @@ def continue_training(run_id, n_add_epochs):
     train_run.stop()
 
 
-def test_model(run_id, n_test_epochs, retrain=True):
+def test_model(run_id, n_test_epochs, continue_training=False):
+    """To create test prediction
+
+    continue_training: Set to true if want to train a TEST model for more epochs.
+
+    n_test_epochs: Absolute number of epochs to be trained for
+    """
     (
         model_id,
         model,
@@ -339,9 +363,9 @@ def test_model(run_id, n_test_epochs, retrain=True):
         loss_fn,
         n_train_epochs,
         hyperparams,
-    ) = load_run(run_id, retrain=retrain)
+    ) = load_run(run_id, retrain=not continue_training)
 
-    if retrain:
+    if not continue_training:
         model_id += f'_Test_{n_test_epochs}'
         print(f'Starting new training: {model_id}')
         train_run = neptune.init_run(
@@ -353,6 +377,36 @@ def test_model(run_id, n_test_epochs, retrain=True):
         hyperparams['n_epoch'] = n_test_epochs
         train_run["parameters"] = hyperparams
         train_model(model, full_train_dl, val_dl, optimizer, loss_fn, n_test_epochs, train_run)
+        train_run.stop()
+
+    else:
+        model_id = model_id.split('_')[:3] + f'_{n_test_epochs}'
+        # model_id += f'_Test_{n_test_epochs}'
+        n_add_epochs = n_test_epochs - n_train_epochs
+
+        print(f'Continuing training of: {run_id}, {model_id}')
+        print(f'\tTraining from {n_train_epochs} for {n_add_epochs} more epochs')
+
+        train_run = neptune.init_run(
+            project="MyResearch/ECSE551-MP3",
+            api_token=NEPTUNE_API,
+            custom_run_id=model_id,
+            source_files=["MP3/*.py"],
+        )
+        hyperparams['n_epoch'] = n_test_epochs
+        train_run["parameters"] = hyperparams
+
+        train_model(
+            model,
+            full_train_dl,
+            val_dl,
+            optimizer,
+            loss_fn,
+            n_add_epochs,
+            train_run,
+            start_epoch=n_train_epochs + 1,
+        )
+
         train_run.stop()
 
     y_test = predict(model, test_dl)
@@ -380,8 +434,8 @@ def add_test_acc(run_id, test_acc: float):
 
 
 if __name__ == "__main__":
-    # # --------- Train all ---------
-    # train_all_models()
+    # --------- Train all ---------
+    train_all_models()
 
     # # --------- Continue training ---------
     # runs = ["MP3-86", "MP3-87", "MP3-88"]
@@ -389,21 +443,21 @@ if __name__ == "__main__":
     # for run_id, n_add_epochs in zip(runs, n_epochs):
     #     continue_training(run_id, n_add_epochs)
 
-    # --------- Prediction ---------
-    run_id = "MP3-125"
-    n_epochs = 25
-    test_model(run_id, n_epochs)
+    # # --------- Prediction ---------
+    # run_id = "MP3-127"
+    # n_epochs = 30
+    # test_model(run_id, n_epochs, continue_training=True)
 
     # # --------- To Neptune ---------
     # # Add test acc to neptune
-    # run_id = "MP3-110"
-    # test_acc = 0.92100
+    # run_id = "MP3-132"
+    # test_acc = 0.925
     # add_test_acc(run_id, test_acc)
 
     ...
 
     # run = neptune.init_run(
-    #     project="MyResearch/ECSE551-MP3", with_id='MP3-90', api_token=NEPTUNE_API
+    #     project="MyResearch/ECSE551-MP3", with_id='MP3-132', api_token=NEPTUNE_API
     # )
 
     # run["parameters/train_batch_size"] = 64
