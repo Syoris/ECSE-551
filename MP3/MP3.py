@@ -3,12 +3,9 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import Tuple, List
 
-import pickle
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
@@ -105,16 +102,16 @@ LOSS_EXP_HP_OPTIONS = {
 BEST_MODEL_EXP = {
     "seed": [SEED],
     # Dataset
-    "img_size": [64],
+    "img_size": [32, 64],
     "train_batch_size": [256],
     "test_batch_size": [256],
     # Model
-    "model_name": ["VGG16"],  # "MyNet", "LeNet5", "VGG11", "VGG13", "VGG16"
+    "model_name": ["VGG13", "VGG16"],  # "MyNet", "LeNet5", "VGG11", "VGG13", "VGG16"
     "act_fn": ["LeakyReLU"],
-    "dropout_prob": [0.15],
+    "dropout_prob": [0, 0.1, 0.15, 0.2],
     # Optim
     "optimizer": ["Adam"],
-    "n_epoch": [50],
+    "n_epoch": [25],
     "lr": [1e-3],
     "momentum": [0],
     # Loss
@@ -392,16 +389,16 @@ if __name__ == "__main__":
     # for run_id, n_add_epochs in zip(runs, n_epochs):
     #     continue_training(run_id, n_add_epochs)
 
-    # # --------- Prediction ---------
-    # run_id = "MP3-109"
-    # n_epochs = 20
-    # test_model(run_id, n_epochs)
+    # --------- Prediction ---------
+    run_id = "MP3-125"
+    n_epochs = 25
+    test_model(run_id, n_epochs)
 
-    # --------- To Neptune ---------
-    # Add test acc to neptune
-    run_id = "MP3-110"
-    test_acc = 0.92100
-    add_test_acc(run_id, test_acc)
+    # # --------- To Neptune ---------
+    # # Add test acc to neptune
+    # run_id = "MP3-110"
+    # test_acc = 0.92100
+    # add_test_acc(run_id, test_acc)
 
     ...
 
